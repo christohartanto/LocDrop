@@ -23,7 +23,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 |---|---|---|
 | 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
 | 1. Midterm prototype, local only | Each person | Done (final benchmark run on one machine still to do) |
-| 0b. AWS setup and deploy (after midterm) | Vincent | In progress: template + one-command deploy ready (docs/DEPLOY.md); waiting for a personal AWS account |
+| 0b. AWS setup and deploy (after midterm) | Vincent | In progress: **backend live on AWS** (Learner Lab, us-east-1; smoke + full flow pass). Website link next (Learner Lab blocks CloudFront) |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Connect frontend to real backend and test on campus | All | Not started |
 
