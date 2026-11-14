@@ -1,18 +1,19 @@
 // SHARED (S-3, owner: Vincent). One-command deploy to AWS using only the AWS CLI (no SAM CLI needed:
 // CloudFormation runs the SAM transform in the cloud).
 //
-//   npm run deploy                  backend + frontend
-//   npm run deploy -- --backend     only the backend (template + Lambdas)
-//   npm run deploy -- --frontend    only the web app (build + upload + CDN refresh)
-//   npm run deploy -- --no-website  backend without S3/CloudFront (new accounts until AWS verifies them)
-//   npm run deploy -- --learner-lab AWS Academy Learner Lab: us-east-1, uses the lab's LabRole
-//                                   (Learner Lab can't create IAM roles). Combine with the flags above.
+//   npm run deploy                     backend + web app
+//   npm run deploy -- --backend        only the backend (template + Lambdas)
+//   npm run deploy -- --frontend       only the web app (build + upload)
+//   npm run deploy -- --website=X      how to host the web app: cloudfront | amplify | none
+//                                      (default: cloudfront; amplify with --learner-lab). --no-website = none
+//   npm run deploy -- --learner-lab    AWS Academy Learner Lab: us-east-1, uses the lab's LabRole
+//                                      (Learner Lab can't create IAM roles or CloudFront). Combine with the above.
 //
 // Needs valid AWS credentials (personal account via `aws login`, or Learner Lab keys). See docs/DEPLOY.md.
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,9 +27,27 @@ const frontendDir = path.resolve(backendDir, "..", "frontend");
 const buildDir = path.join(backendDir, ".aws-build");
 
 const args = process.argv.slice(2);
-const noWebsite = args.includes("--no-website");
+const websiteArg = args.find((a) => a.startsWith("--website="))?.split("=")[1];
+const WEB_HOSTING = args.includes("--no-website") ? "none" : (websiteArg ?? (learnerLab ? "amplify" : "cloudfront"));
+if (!["cloudfront", "amplify", "none"].includes(WEB_HOSTING)) {
+  console.error(`✖ --website must be cloudfront, amplify or none (got "${WEB_HOSTING}")`);
+  process.exit(1);
+}
 const doBackend = !args.includes("--frontend");
-const doFrontend = !args.includes("--backend") && !noWebsite;
+const doFrontend = !args.includes("--backend");
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Zip the contents of `dir` (files at the zip root, forward-slash paths) without extra npm packages. */
+function zipDirectory(dir: string, zipPath: string, exclude: string[] = []) {
+  rmSync(zipPath, { force: true });
+  const entries = readdirSync(dir).filter((f) => !exclude.includes(f));
+  const res =
+    process.platform === "win32"
+      ? spawnSync(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe"), ["-a", "-c", "-f", zipPath, "-C", dir, ...entries], { encoding: "utf8" })
+      : spawnSync("zip", ["-r", "-q", zipPath, ...entries], { cwd: dir, encoding: "utf8" });
+  if (res.status !== 0 || !existsSync(zipPath)) throw new Error(`Could not zip the web app: ${res.stderr || res.error?.message}`);
+}
 
 const step = (msg: string) => console.log(`\n▶ ${msg}`);
 
@@ -157,10 +176,10 @@ try {
       console.log("  removed");
     }
 
-    step(`Deploying stack ${STACK}${noWebsite ? " (backend only, no website)" : ""} (first time takes ~5–10 min)`);
+    step(`Deploying stack ${STACK} (web app hosting: ${WEB_HOSTING}) (first time takes ~5–10 min)`);
     const deploy = spawnSync("aws", ["cloudformation", "deploy", "--template-file", path.join(buildDir, "packaged.yaml"),
       "--stack-name", STACK, "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
-      "--parameter-overrides", `Stage=${STAGE}`, `EnableWebsite=${noWebsite ? "false" : "true"}`,
+      "--parameter-overrides", `Stage=${STAGE}`, `WebHosting=${WEB_HOSTING}`,
       "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit", env: AWS_ENV });
     if (deploy.status !== 0) {
       console.error(`\n  ✖ Stack deploy failed. See why with:\n    aws cloudformation describe-stack-events --stack-name ${STACK} --region ${REGION} --max-items 15`);
@@ -171,15 +190,60 @@ try {
   const outputs = stackOutputs();
   writeFileSync(path.join(buildDir, "outputs.json"), JSON.stringify(outputs, null, 2) + "\n");
 
-  if (doFrontend && !outputs.WebBucketName) {
-    console.log("\n  (No website in this stack yet: it was deployed with --no-website. Skipping the web app upload.)");
-  } else if (doFrontend) {
-    // 5. Build the web app pointing at the cloud API, upload it, refresh the CDN
+  const hosting = outputs.WebHosting ?? (outputs.WebBucketName ? "cloudfront" : "none");
+  if (doFrontend && hosting === "none") {
+    console.log("\n  (This stack has no web app hosting (--website=none). Skipping the web app upload.)");
+  }
+
+  let dist = "";
+  if (doFrontend && hosting !== "none") {
+    // 5. Build the web app pointing at the cloud API
     step(`Building the web app for ${outputs.ApiUrl}`);
     npm(["run", "build", "--prefix", frontendDir], { VITE_API_URL: outputs.ApiUrl, VITE_USE_MOCKS: "false" });
-    const dist = path.join(frontendDir, "dist");
+    dist = path.join(frontendDir, "dist");
     if (!existsSync(path.join(dist, "index.html"))) throw new Error("frontend build produced no dist/index.html");
+  }
 
+  if (doFrontend && hosting === "amplify") {
+    // 6a. Amplify Hosting "manual deploy": zip the built files, upload to Amplify's URL, start, wait.
+    const appId = outputs.AmplifyAppId;
+    step(`Uploading the web app to AWS Amplify (app ${appId}, branch main)`);
+    const zipPath = path.join(buildDir, "web.zip");
+    zipDirectory(dist, zipPath, ["mockServiceWorker.js"]);
+    const deployment = JSON.parse(
+      aws(["amplify", "create-deployment", "--app-id", appId, "--branch-name", "main", "--output", "json"], { quiet: true }),
+    ) as { jobId: string; zipUploadUrl: string };
+    const zip = readFileSync(zipPath);
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const put = await fetch(deployment.zipUploadUrl, { method: "PUT", body: zip });
+        if (!put.ok) throw new Error(`upload failed with HTTP ${put.status}`);
+        break;
+      } catch (err) {
+        if (attempt >= 4) throw err;
+        console.log(`  upload attempt ${attempt} failed (${err instanceof Error ? err.message : err}); retrying…`);
+        await sleep(3000 * attempt);
+      }
+    }
+    console.log(`  uploaded ${(zip.length / 1024).toFixed(0)} KB`);
+    aws(["amplify", "start-deployment", "--app-id", appId, "--branch-name", "main", "--job-id", deployment.jobId], { quiet: true });
+
+    step("Waiting for Amplify to publish it");
+    let status = "PENDING";
+    for (let waited = 0; waited < 300_000; waited += 3000) {
+      const job = JSON.parse(
+        aws(["amplify", "get-job", "--app-id", appId, "--branch-name", "main", "--job-id", deployment.jobId, "--output", "json"], { quiet: true }),
+      );
+      status = job.job?.summary?.status ?? "UNKNOWN";
+      if (["SUCCEED", "FAILED", "CANCELLED"].includes(status)) break;
+      await sleep(3000);
+    }
+    if (status !== "SUCCEED") throw new Error(`Amplify deployment ended with status ${status} (see the Amplify console)`);
+    console.log("  published");
+  }
+
+  if (doFrontend && hosting === "cloudfront") {
+    // 6b. S3 + CloudFront: upload the files, then refresh the CDN
     step(`Uploading the web app to s3://${outputs.WebBucketName}`);
     // hashed assets: cache for a year; index.html: always re-check (so new deploys show up immediately)
     aws(["s3", "sync", dist, `s3://${outputs.WebBucketName}`, "--delete", "--exclude", "index.html",
@@ -192,7 +256,7 @@ try {
   }
 
   console.log(
-    `\n✔ Deployed.\n  Web app: ${outputs.WebUrl ?? "(not created yet: redeploy without --no-website once AWS verifies the account)"}` +
+    `\n✔ Deployed.\n  Web app: ${outputs.WebUrl ?? "(none: deployed with --website=none)"}${outputs.WebUrl ? `  (hosted with ${hosting})` : ""}` +
       `\n  API:     ${outputs.ApiUrl}\n  (saved to backend/.aws-build/outputs.json)`,
   );
   console.log(`  Check it: npm run smoke:aws`);

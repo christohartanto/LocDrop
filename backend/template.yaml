@@ -1,5 +1,6 @@
-# SHARED (S-3, owner: Vincent). LocDrop on AWS: DynamoDB + Lambda + API Gateway (HTTP API) + S3/CloudFront.
-# Deploy with: npm run deploy   (see docs/DEPLOY.md). Region: ap-southeast-2 (Sydney), where our AWS account lives.
+# SHARED (S-3, owner: Vincent). LocDrop on AWS: DynamoDB + Lambda + API Gateway (HTTP API) + web app hosting
+# (S3 + CloudFront, or AWS Amplify Hosting where CloudFront isn't available).
+# Deploy with: npm run deploy   (see docs/DEPLOY.md). Learner Lab: npm run deploy -- --learner-lab (us-east-1).
 # The Lambda code is bundled into .aws-build/<Name>/ by `npm run build:lambdas` first.
 # The local Express server (src/local) and the dev-only naive route are NOT deployed.
 
@@ -12,16 +13,20 @@ Parameters:
     Type: String
     Default: prod
     AllowedPattern: "[a-z0-9-]+"
-  EnableWebsite:
+  WebHosting:
     Type: String
-    Default: "true"
-    AllowedValues: ["true", "false"]
+    Default: cloudfront
+    AllowedValues: [cloudfront, amplify, none]
     Description: >-
-      Create the public web app (S3 + CloudFront). Brand-new AWS accounts can't create CloudFront until
-      AWS Support verifies them; deploy with `npm run deploy -- --no-website` until then.
+      How to host the web app (both give an HTTPS link, which phones need for GPS).
+      cloudfront = private S3 bucket + CloudFront. amplify = AWS Amplify Hosting (use this in AWS Academy
+      Learner Lab, which blocks CloudFront, or in a new account until AWS Support verifies it for CloudFront).
+      none = API only.
 
 Conditions:
-  CreateWebsite: !Equals [!Ref EnableWebsite, "true"]
+  UseCloudFront: !Equals [!Ref WebHosting, cloudfront]
+  UseAmplify: !Equals [!Ref WebHosting, amplify]
+  HasWebsite: !Or [!Condition UseCloudFront, !Condition UseAmplify]
 
 Globals:
   Function:
@@ -230,10 +235,10 @@ Resources:
             Method: DELETE
             Path: /notes/{id}
 
-  # ---------------------------------------------------------------- web app (private S3 bucket behind CloudFront, HTTPS)
+  # ---------------------------------------------------------------- web app, option A: private S3 bucket behind CloudFront (HTTPS)
   WebBucket:
     Type: AWS::S3::Bucket
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -243,7 +248,7 @@ Resources:
 
   WebOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Properties:
       OriginAccessControlConfig:
         Name: !Sub "locdrop-${Stage}-web"
@@ -253,7 +258,7 @@ Resources:
 
   WebDistribution:
     Type: AWS::CloudFront::Distribution
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Properties:
       DistributionConfig:
         Enabled: true
@@ -279,7 +284,7 @@ Resources:
 
   WebBucketPolicy:
     Type: AWS::S3::BucketPolicy
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Properties:
       Bucket: !Ref WebBucket
       PolicyDocument:
@@ -294,19 +299,50 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}"
 
+  # ---------------------------------------------------------------- web app, option B: AWS Amplify Hosting (HTTPS)
+  # Managed hosting (runs on CloudFront behind the scenes, managed by AWS). The deploy script uploads the
+  # built web app as a zip ("manual deploy"), so no GitHub connection is needed.
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Condition: UseAmplify
+    Properties:
+      Name: !Sub "locdrop-${Stage}"
+      Description: LocDrop web app (CSC4160)
+      Platform: WEB
+      CustomRules: # single-page app: any path that isn't a real file (e.g. /note/abc) serves index.html
+        - Source: "/<*>"
+          Target: /index.html
+          Status: "404-200"
+
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Condition: UseAmplify
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: main
+      Stage: PRODUCTION
+
 Outputs:
   ApiUrl:
     Description: Base URL of the LocDrop API
     Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  WebHosting:
+    Value: !Ref WebHosting
   WebUrl:
-    Condition: CreateWebsite
+    Condition: HasWebsite
     Description: The live web app (open this on any phone)
-    Value: !Sub "https://${WebDistribution.DomainName}"
+    Value: !If
+      - UseCloudFront
+      - !Sub "https://${WebDistribution.DomainName}"
+      - !Sub "https://main.${AmplifyApp.DefaultDomain}"
+  AmplifyAppId:
+    Condition: UseAmplify
+    Value: !GetAtt AmplifyApp.AppId
   WebBucketName:
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Value: !Ref WebBucket
   DistributionId:
-    Condition: CreateWebsite
+    Condition: UseCloudFront
     Value: !Ref WebDistribution
   TableName:
     Value: !Ref NotesTable

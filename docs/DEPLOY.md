@@ -6,7 +6,7 @@ One command deploys everything to AWS. **Right now we deploy to AWS Academy Lear
 
 ## Learner Lab (current setup)
 
-Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole`** (Learner Lab can't create IAM roles) and region **`us-east-1`**. Limits: keys expire after ~4 hours, and **everything is deleted when the course ends**.
+Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole`** (Learner Lab can't create IAM roles), region **`us-east-1`**, and hosts the web app on **AWS Amplify Hosting** (Learner Lab blocks CloudFront). Limits: keys stop working when the ~4-hour lab session ends (an error mentioning `voc-cancel-cred` means exactly that), and **everything is deleted when the course ends**.
 
 1. AWS Academy → Learner Lab → **Start Lab** (wait for the green dot) → **AWS Details → AWS CLI: Show**.
 2. Paste that `[default]` block into `C:\Users\<you>\.aws\credentials`, replacing the old `[default]` block.
@@ -16,9 +16,9 @@ Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole
    npm run deploy -- --learner-lab
    npm run smoke:aws -- --learner-lab
    ```
-   If CloudFront is blocked in your lab, deploy the API only with `npm run deploy -- --learner-lab --no-website`.
+   The deploy prints the **Web app** link (`https://main.<id>.amplifyapp.com`) and the API link.
 
-The app keeps running between lab sessions; you only need fresh keys (steps 1–2) to **deploy** again.
+**The app keeps running between lab sessions** (checked after a session ended: the API and database still answered). You only need fresh keys (steps 1–2) to **deploy** again.
 
 ## Personal AWS account (later)
 
@@ -31,7 +31,7 @@ Same template, same command without `--learner-lab`. The rest of this guide desc
 | Database | DynamoDB table `locdrop-prod` | Same keys and indexes as DynamoDB Local; on-demand billing |
 | 11 endpoints | Lambda (Node.js 22, arm64) | One function per endpoint, bundled from the same handler code we run locally |
 | API | API Gateway HTTP API | Rate-limited (50 req/s, bursts of 100) to cap costs |
-| Web app | S3 (private) + CloudFront | HTTPS link that works on any phone, so real GPS works |
+| Web app | **Amplify Hosting** (`--website=amplify`, default in Learner Lab) **or** S3 (private) + CloudFront (`--website=cloudfront`, default otherwise) | Either way an HTTPS link that works on any phone, so real GPS works. `--website=none` deploys the API only |
 | Login secret | SSM Parameter Store `/locdrop/prod/jwt-secret` | Random, created once by the deploy script, never in git |
 
 Everything is defined in [`backend/template.yaml`](../backend/template.yaml). At our usage this should cost about $0/month.
@@ -60,6 +60,8 @@ Everything is defined in [`backend/template.yaml`](../backend/template.yaml). At
    npm run deploy
    ```
    The first deploy takes ~5–10 minutes (mostly CloudFront). At the end it prints the **Web app** link. `EXPECTED_ACCOUNT` makes the script stop if it's somehow signed in to a different account.
+
+   Brand-new accounts can't create CloudFront until AWS Support verifies them ("Your account must be verified…"). Until then, use Amplify: `npm run deploy -- --website=amplify`.
 5. **Check it:**
    ```powershell
    npm run smoke:aws
@@ -69,9 +71,11 @@ Everything is defined in [`backend/template.yaml`](../backend/template.yaml). At
 ## Later deploys
 
 ```powershell
-npm run deploy                 # everything
-npm run deploy -- --backend    # only API/Lambda changes
-npm run deploy -- --frontend   # only web app changes
+npm run deploy                     # everything
+npm run deploy -- --backend        # only API/Lambda changes
+npm run deploy -- --frontend       # only web app changes
+npm run deploy -- --website=X      # choose web hosting: cloudfront | amplify | none
+# add --learner-lab to any of these when deploying to Learner Lab
 ```
 
 Merge to `main` first, then deploy from `main`, so the cloud always matches `main`.
@@ -81,9 +85,11 @@ Merge to `main` first, then deploy from `main`, so the cloud always matches `mai
 | Task | Command |
 |---|---|
 | Show the links again | `type backend\.aws-build\outputs.json` |
-| Recent errors from one endpoint | `aws logs tail /aws/lambda/<function name> --since 15m --region ap-southeast-2` (find names in the Lambda console) |
-| Why a deploy failed | `aws cloudformation describe-stack-events --stack-name locdrop-prod --region ap-southeast-2 --max-items 15` |
-| Delete everything (stops all costs) | `aws cloudformation delete-stack --stack-name locdrop-prod --region ap-southeast-2`, then empty and delete the `locdrop-deploy-...` bucket |
+| Recent errors from one endpoint | `aws logs tail /aws/lambda/<function name> --since 15m --region <region>` (find names in the Lambda console) |
+| Why a deploy failed | `aws cloudformation describe-stack-events --stack-name locdrop-prod --region <region> --max-items 15` |
+| Delete everything (stops all costs) | `aws cloudformation delete-stack --stack-name locdrop-prod --region <region>`, then empty and delete the `locdrop-deploy-...` bucket |
+
+`<region>` is `us-east-1` in Learner Lab, or your personal account's region.
 
 ## Good to know
 
