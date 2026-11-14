@@ -9,7 +9,11 @@ const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
 const STACK = "locdrop-prod";
 
 function aws(args: string[]): string {
-  const r = spawnSync("aws", [...args, "--region", REGION, "--output", "text"], { encoding: "utf8" });
+  // AWS_EC2_METADATA_DISABLED: never pick up a VPN/proxy server's instance credentials (see deploy.ts)
+  const r = spawnSync("aws", [...args, "--region", REGION, "--output", "text"], {
+    encoding: "utf8",
+    env: { ...process.env, AWS_EC2_METADATA_DISABLED: "true" },
+  });
   if (r.status !== 0) {
     console.error(`✖ ${r.stderr.trim() || "AWS CLI failed"}\n  (Signed in? Run: aws login)`);
     process.exit(1);

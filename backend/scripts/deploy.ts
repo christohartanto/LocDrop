@@ -27,9 +27,14 @@ const doFrontend = !args.includes("--backend");
 
 const step = (msg: string) => console.log(`\n▶ ${msg}`);
 
+// Never fall back to "instance metadata" credentials (169.254.169.254). On a laptop behind a VPN/proxy
+// that runs on AWS, that address can reach the VPN server and return ITS credentials instead of failing.
+const AWS_ENV = { ...process.env, AWS_EC2_METADATA_DISABLED: "true" };
+
 /** Run the AWS CLI and return stdout. Throws with AWS's error message on failure. */
 function aws(cmdArgs: string[], opts: { quiet?: boolean } = {}): string {
   const res = spawnSync("aws", [...cmdArgs, "--region", REGION], {
+    env: AWS_ENV,
     encoding: "utf8",
     stdio: opts.quiet ? ["ignore", "pipe", "pipe"] : ["ignore", "pipe", "inherit"],
     maxBuffer: 50 * 1024 * 1024,
@@ -59,6 +64,14 @@ try {
     const id = JSON.parse(aws(["sts", "get-caller-identity", "--output", "json"], { quiet: true }));
     account = id.Account;
     console.log(`  account ${account} as ${String(id.Arn).replace(/^arn:aws:/, "")}`);
+    if (/InstanceRole|:assumed-role\/.*\/i-[0-9a-f]+$/.test(String(id.Arn))) {
+      console.error("  ✖ These are a server's built-in credentials, not your sign-in. Run: aws login --profile locdrop");
+      process.exit(1);
+    }
+    if (process.env.EXPECTED_ACCOUNT && process.env.EXPECTED_ACCOUNT !== account) {
+      console.error(`  ✖ Expected account ${process.env.EXPECTED_ACCOUNT} but got ${account}. Stopping.`);
+      process.exit(1);
+    }
   } catch {
     console.error("  ✖ No valid AWS credentials. Sign in first:  aws login   (see docs/DEPLOY.md)");
     process.exit(1);
@@ -106,7 +119,7 @@ try {
     step(`Deploying stack ${STACK} (first time takes ~5–10 min, mostly CloudFront)`);
     const deploy = spawnSync("aws", ["cloudformation", "deploy", "--template-file", path.join(buildDir, "packaged.yaml"),
       "--stack-name", STACK, "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
-      "--parameter-overrides", `Stage=${STAGE}`, "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit" });
+      "--parameter-overrides", `Stage=${STAGE}`, "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit", env: AWS_ENV });
     if (deploy.status !== 0) {
       console.error(`\n  ✖ Stack deploy failed. See why with:\n    aws cloudformation describe-stack-events --stack-name ${STACK} --region ${REGION} --max-items 15`);
       process.exit(1);
