@@ -23,7 +23,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 |---|---|---|
 | 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
 | 1. Midterm prototype, local only | Each person | Done (final benchmark run on one machine still to do) |
-| 0b. AWS setup and deploy (after midterm) | Vincent | In progress: **backend live on AWS** (Learner Lab, us-east-1; smoke + full flow pass). Website link next (Learner Lab blocks CloudFront) |
+| 0b. AWS setup and deploy (after midterm) | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; smoke 22/22, cloud user flow 16/16). Public website link is FE-9 |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Connect frontend to real backend and test on campus | All | Not started |
 
@@ -274,7 +274,7 @@ Tick your box in the same pull request that finishes the item.
 
 - [x] **S-1** @Wendy Create the GitHub repo, add Eugene and Vincent, turn on branch protection
 - [x] **S-2** @Vincent Write `api.md` with the request and response for every endpoint (everyone approves)
-- [ ] **S-3** @Vincent `template.yaml` with every endpoint and the WebSocket API created as empty placeholders *(template + deploy script done; WebSocket API comes with A-9)*
+- [x] **S-3** @Vincent `template.yaml` with every endpoint and the WebSocket API created as empty placeholders *(done and deployed; the WebSocket API moves to A-9, together with the live pop-up code)*
 - [x] **S-4** @Wendy Shared helpers: config, database table layout, geohash + distance functions
 - [x] **S-5** @Vincent Shared login check that every protected endpoint uses
 - [x] **S-6** @Vincent Empty versions of `releaseSlot`, `reserveSlot`, `isMember` so Wendy can start
@@ -291,7 +291,7 @@ Tick your box in the same pull request that finishes the item.
 - [x] **FE-6** Show "x of N notes used"; block writing when full
 - [x] **FE-7** My notes screen with a Recall button
 - [ ] **FE-8** Groups screen: create, join with code, list
-- [ ] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront
+- [ ] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(Learner Lab blocks CloudFront: use AWS Amplify Hosting there, also HTTPS)*
 - [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
 - [x] **FE-11** Dev-only location override panel
 
