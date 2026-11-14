@@ -1,5 +1,5 @@
 # SHARED (S-3, owner: Vincent). LocDrop on AWS: DynamoDB + Lambda + API Gateway (HTTP API) + S3/CloudFront.
-# Deploy with: npm run deploy   (see docs/DEPLOY.md). Region: ap-southeast-1 (Singapore).
+# Deploy with: npm run deploy   (see docs/DEPLOY.md). Region: ap-southeast-2 (Sydney), where our AWS account lives.
 # The Lambda code is bundled into .aws-build/<Name>/ by `npm run build:lambdas` first.
 # The local Express server (src/local) and the dev-only naive route are NOT deployed.
 

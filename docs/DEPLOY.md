@@ -1,6 +1,6 @@
 # Deploying LocDrop to AWS (S-3)
 
-One command deploys everything to a **personal AWS account** in **Singapore (ap-southeast-1)**. Do **not** use AWS Academy Learner Lab: it can't create the permission roles Lambda needs, its keys expire every few hours, and it is wiped when the course ends.
+One command deploys everything to a **personal AWS account** in **Sydney (ap-southeast-2)**, the region our AWS account was set up in. Do **not** use AWS Academy Learner Lab: it can't create the permission roles Lambda needs, its keys expire every few hours, and it is wiped when the course ends.
 
 ## What gets created
 
@@ -18,18 +18,26 @@ Everything is defined in [`backend/template.yaml`](../backend/template.yaml). At
 
 1. **Create a personal AWS account** at https://aws.amazon.com/free.
 2. **Set a budget alert:** AWS console → *Budgets* → *Create budget* → *Zero spend budget* (or $5/month) → your email.
-3. **Sign the laptop in** (opens the browser):
+3. **Sign the laptop in** under a profile called `locdrop`, in a normal PowerShell window (it opens the browser; pick your account there and click Allow):
    ```powershell
-   aws login
+   aws configure set region ap-southeast-2 --profile locdrop
+   aws login --profile locdrop
    ```
-   When asked for a region, use `ap-southeast-1`. Check it worked: `aws sts get-caller-identity` shows your account number.
-4. **Deploy:**
+   Use the region your account was set up in; AWS refuses the sign-in otherwise ("Region not supported for your project"). Check it worked:
+   ```powershell
+   $env:AWS_EC2_METADATA_DISABLED="true"
+   aws sts get-caller-identity --profile locdrop
+   ```
+   It must show **your** 12-digit account number. (`AWS_EC2_METADATA_DISABLED` stops the CLI from picking up a VPN server's credentials instead; this happened to us.)
+4. **Deploy** (same PowerShell window):
    ```powershell
    npm install --prefix backend
    npm install --prefix frontend
+   $env:AWS_PROFILE="locdrop"
+   $env:EXPECTED_ACCOUNT="<your 12-digit account number>"
    npm run deploy
    ```
-   The first deploy takes ~5–10 minutes (mostly CloudFront). At the end it prints the **Web app** link.
+   The first deploy takes ~5–10 minutes (mostly CloudFront). At the end it prints the **Web app** link. `EXPECTED_ACCOUNT` makes the script stop if it's somehow signed in to a different account.
 5. **Check it:**
    ```powershell
    npm run smoke:aws
@@ -51,9 +59,9 @@ Merge to `main` first, then deploy from `main`, so the cloud always matches `mai
 | Task | Command |
 |---|---|
 | Show the links again | `type backend\.aws-build\outputs.json` |
-| Recent errors from one endpoint | `aws logs tail /aws/lambda/<function name> --since 15m --region ap-southeast-1` (find names in the Lambda console) |
-| Why a deploy failed | `aws cloudformation describe-stack-events --stack-name locdrop-prod --region ap-southeast-1 --max-items 15` |
-| Delete everything (stops all costs) | `aws cloudformation delete-stack --stack-name locdrop-prod --region ap-southeast-1`, then empty and delete the `locdrop-deploy-...` bucket |
+| Recent errors from one endpoint | `aws logs tail /aws/lambda/<function name> --since 15m --region ap-southeast-2` (find names in the Lambda console) |
+| Why a deploy failed | `aws cloudformation describe-stack-events --stack-name locdrop-prod --region ap-southeast-2 --max-items 15` |
+| Delete everything (stops all costs) | `aws cloudformation delete-stack --stack-name locdrop-prod --region ap-southeast-2`, then empty and delete the `locdrop-deploy-...` bucket |
 
 ## Good to know
 

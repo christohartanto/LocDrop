@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
+const REGION = process.env.AWS_REGION ?? "ap-southeast-2";
 const STAGE = "prod";
 const STACK = `locdrop-${STAGE}`;
 const JWT_PARAM = `/locdrop/${STAGE}/jwt-secret`; // must match template.yaml

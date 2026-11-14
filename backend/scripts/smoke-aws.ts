@@ -5,7 +5,7 @@
 
 import { spawnSync } from "node:child_process";
 
-const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
+const REGION = process.env.AWS_REGION ?? "ap-southeast-2";
 const STACK = "locdrop-prod";
 
 function aws(args: string[]): string {
