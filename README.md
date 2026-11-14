@@ -23,7 +23,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 |---|---|---|
 | 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
 | 1. Midterm prototype, local only | Each person | Done (final benchmark run on one machine still to do) |
-| 0b. AWS setup and deploy (after midterm) | Vincent | Not started |
+| 0b. AWS setup and deploy (after midterm) | Vincent | In progress: template + one-command deploy ready (docs/DEPLOY.md); waiting for a personal AWS account |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Connect frontend to real backend and test on campus | All | Not started |
 
@@ -272,9 +272,9 @@ Tick your box in the same pull request that finishes the item.
 
 ### 1. Setup (together, first)
 
-- [ ] **S-1** @Wendy Create the GitHub repo, add Eugene and Vincent, turn on branch protection *(repo + collaborators done; branch protection pending)*
+- [x] **S-1** @Wendy Create the GitHub repo, add Eugene and Vincent, turn on branch protection
 - [x] **S-2** @Vincent Write `api.md` with the request and response for every endpoint (everyone approves)
-- [ ] **S-3** @Vincent `template.yaml` with every endpoint and the WebSocket API created as empty placeholders
+- [ ] **S-3** @Vincent `template.yaml` with every endpoint and the WebSocket API created as empty placeholders *(template + deploy script done; WebSocket API comes with A-9)*
 - [x] **S-4** @Wendy Shared helpers: config, database table layout, geohash + distance functions
 - [x] **S-5** @Vincent Shared login check that every protected endpoint uses
 - [x] **S-6** @Vincent Empty versions of `releaseSlot`, `reserveSlot`, `isMember` so Wendy can start

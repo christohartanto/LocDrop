@@ -1,0 +1,142 @@
+// SHARED (S-3, owner: Vincent). One-command deploy to AWS using only the AWS CLI (no SAM CLI needed:
+// CloudFormation runs the SAM transform in the cloud).
+//
+//   npm run deploy               backend + frontend
+//   npm run deploy -- --backend  only the backend (template + Lambdas)
+//   npm run deploy -- --frontend only the web app (build + upload + CDN refresh)
+//
+// Needs: `aws login` (or other valid credentials) for a PERSONAL AWS account. See docs/DEPLOY.md.
+
+import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
+const STAGE = "prod";
+const STACK = `locdrop-${STAGE}`;
+const JWT_PARAM = `/locdrop/${STAGE}/jwt-secret`; // must match template.yaml
+const backendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const frontendDir = path.resolve(backendDir, "..", "frontend");
+const buildDir = path.join(backendDir, ".aws-build");
+
+const args = process.argv.slice(2);
+const doBackend = !args.includes("--frontend");
+const doFrontend = !args.includes("--backend");
+
+const step = (msg: string) => console.log(`\n▶ ${msg}`);
+
+/** Run the AWS CLI and return stdout. Throws with AWS's error message on failure. */
+function aws(cmdArgs: string[], opts: { quiet?: boolean } = {}): string {
+  const res = spawnSync("aws", [...cmdArgs, "--region", REGION], {
+    encoding: "utf8",
+    stdio: opts.quiet ? ["ignore", "pipe", "pipe"] : ["ignore", "pipe", "inherit"],
+    maxBuffer: 50 * 1024 * 1024,
+  });
+  if (res.error) throw new Error(`Could not run the AWS CLI: ${res.error.message}`);
+  if (res.status !== 0) throw new Error((res.stderr ?? "").trim() || `aws ${cmdArgs[0]} ${cmdArgs[1]} failed`);
+  return res.stdout;
+}
+
+function npm(cmdArgs: string[], env: Record<string, string> = {}) {
+  const res = spawnSync("npm", cmdArgs, { stdio: "inherit", shell: true, env: { ...process.env, ...env } });
+  if (res.status !== 0) throw new Error(`npm ${cmdArgs.join(" ")} failed`);
+}
+
+function stackOutputs(): Record<string, string> {
+  const out = JSON.parse(aws(["cloudformation", "describe-stacks", "--stack-name", STACK, "--output", "json"], { quiet: true }));
+  const map: Record<string, string> = {};
+  for (const o of out.Stacks[0].Outputs ?? []) map[o.OutputKey] = o.OutputValue;
+  return map;
+}
+
+try {
+  // 0. Who am I? (refuse to continue without valid credentials)
+  step(`Checking AWS credentials (region ${REGION})`);
+  let account: string;
+  try {
+    const id = JSON.parse(aws(["sts", "get-caller-identity", "--output", "json"], { quiet: true }));
+    account = id.Account;
+    console.log(`  account ${account} as ${String(id.Arn).replace(/^arn:aws:/, "")}`);
+  } catch {
+    console.error("  ✖ No valid AWS credentials. Sign in first:  aws login   (see docs/DEPLOY.md)");
+    process.exit(1);
+  }
+
+  if (doBackend) {
+    // 1. Login-token secret in SSM Parameter Store (created once, never printed, never in git)
+    step(`Ensuring the login-token secret exists in SSM (${JWT_PARAM})`);
+    try {
+      aws(["ssm", "get-parameter", "--name", JWT_PARAM, "--output", "json"], { quiet: true });
+      console.log("  already exists (kept as is, so existing logins stay valid)");
+    } catch (err) {
+      if (!String(err).includes("ParameterNotFound")) throw err;
+      aws(
+        ["ssm", "put-parameter", "--name", JWT_PARAM, "--type", "String", "--value", randomBytes(48).toString("base64url"),
+          "--description", "LocDrop login-token (JWT) signing secret"],
+        { quiet: true },
+      );
+      console.log("  created a new random secret");
+    }
+
+    // 2. Bundle the Lambda code
+    step("Bundling Lambda functions");
+    npm(["run", "build:lambdas"]);
+
+    // 3. Bucket for deployment packages (created once per account+region)
+    const artifacts = `locdrop-deploy-${account}-${REGION}`;
+    step(`Ensuring the deployment-package bucket exists (${artifacts})`);
+    try {
+      aws(["s3api", "head-bucket", "--bucket", artifacts], { quiet: true });
+      console.log("  already exists");
+    } catch {
+      aws(["s3api", "create-bucket", "--bucket", artifacts, "--create-bucket-configuration", `LocationConstraint=${REGION}`], { quiet: true });
+      aws(["s3api", "put-public-access-block", "--bucket", artifacts, "--public-access-block-configuration",
+        "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"], { quiet: true });
+      console.log("  created");
+    }
+
+    // 4. Upload code + deploy the CloudFormation stack
+    step("Uploading Lambda packages");
+    mkdirSync(buildDir, { recursive: true });
+    aws(["cloudformation", "package", "--template-file", path.join(backendDir, "template.yaml"),
+      "--s3-bucket", artifacts, "--s3-prefix", STACK, "--output-template-file", path.join(buildDir, "packaged.yaml")], { quiet: true });
+
+    step(`Deploying stack ${STACK} (first time takes ~5–10 min, mostly CloudFront)`);
+    const deploy = spawnSync("aws", ["cloudformation", "deploy", "--template-file", path.join(buildDir, "packaged.yaml"),
+      "--stack-name", STACK, "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
+      "--parameter-overrides", `Stage=${STAGE}`, "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit" });
+    if (deploy.status !== 0) {
+      console.error(`\n  ✖ Stack deploy failed. See why with:\n    aws cloudformation describe-stack-events --stack-name ${STACK} --region ${REGION} --max-items 15`);
+      process.exit(1);
+    }
+  }
+
+  const outputs = stackOutputs();
+  writeFileSync(path.join(buildDir, "outputs.json"), JSON.stringify(outputs, null, 2) + "\n");
+
+  if (doFrontend) {
+    // 5. Build the web app pointing at the cloud API, upload it, refresh the CDN
+    step(`Building the web app for ${outputs.ApiUrl}`);
+    npm(["run", "build", "--prefix", frontendDir], { VITE_API_URL: outputs.ApiUrl, VITE_USE_MOCKS: "false" });
+    const dist = path.join(frontendDir, "dist");
+    if (!existsSync(path.join(dist, "index.html"))) throw new Error("frontend build produced no dist/index.html");
+
+    step(`Uploading the web app to s3://${outputs.WebBucketName}`);
+    // hashed assets: cache for a year; index.html: always re-check (so new deploys show up immediately)
+    aws(["s3", "sync", dist, `s3://${outputs.WebBucketName}`, "--delete", "--exclude", "index.html",
+      "--exclude", "mockServiceWorker.js", "--cache-control", "public,max-age=31536000,immutable"], { quiet: true });
+    aws(["s3", "cp", path.join(dist, "index.html"), `s3://${outputs.WebBucketName}/index.html`,
+      "--cache-control", "no-cache", "--content-type", "text/html; charset=utf-8"], { quiet: true });
+
+    step("Refreshing CloudFront");
+    aws(["cloudfront", "create-invalidation", "--distribution-id", outputs.DistributionId, "--paths", "/*", "--output", "json"], { quiet: true });
+  }
+
+  console.log(`\n✔ Deployed.\n  Web app: ${outputs.WebUrl}\n  API:     ${outputs.ApiUrl}\n  (saved to backend/.aws-build/outputs.json)`);
+  console.log(`  Check it: npm run smoke:aws`);
+} catch (err) {
+  console.error(`\n✖ ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+}

@@ -15,7 +15,10 @@
     "bench:a8": "tsx bench/a8/run.ts",
     "bench:b7": "tsx bench/b7/run.ts",
     "bench:b8": "cross-env TABLE_NAME=LocDropBench tsx bench/b8/run.ts",
-    "bench:latency": "tsx bench/latency/run.ts"
+    "bench:latency": "tsx bench/latency/run.ts",
+    "build:lambdas": "tsx scripts/build-lambdas.ts",
+    "deploy": "tsx scripts/deploy.ts",
+    "smoke:aws": "tsx scripts/smoke-aws.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1168.0",
@@ -35,6 +38,7 @@
     "@types/ngeohash": "^0.6.8",
     "@types/node": "^26.6.6",
     "cross-env": "^10.1.0",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
