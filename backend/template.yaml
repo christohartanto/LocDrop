@@ -12,6 +12,16 @@ Parameters:
     Type: String
     Default: prod
     AllowedPattern: "[a-z0-9-]+"
+  EnableWebsite:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Create the public web app (S3 + CloudFront). Brand-new AWS accounts can't create CloudFront until
+      AWS Support verifies them; deploy with `npm run deploy -- --no-website` until then.
+
+Conditions:
+  CreateWebsite: !Equals [!Ref EnableWebsite, "true"]
 
 Globals:
   Function:
@@ -62,10 +72,10 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       CorsConfiguration:
-        AllowOrigins:
-          - !Sub "https://${WebDistribution.DomainName}"
-          - http://localhost:5173
-          - https://localhost:5173
+        AllowOrigins: !If
+          - CreateWebsite
+          - [!Sub "https://${WebDistribution.DomainName}", "http://localhost:5173", "https://localhost:5173"]
+          - ["http://localhost:5173", "https://localhost:5173"]
         AllowHeaders: [authorization, content-type]
         AllowMethods: [GET, POST, DELETE, OPTIONS]
         MaxAge: 600
@@ -222,6 +232,7 @@ Resources:
   # ---------------------------------------------------------------- web app (private S3 bucket behind CloudFront, HTTPS)
   WebBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateWebsite
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -231,6 +242,7 @@ Resources:
 
   WebOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
+    Condition: CreateWebsite
     Properties:
       OriginAccessControlConfig:
         Name: !Sub "locdrop-${Stage}-web"
@@ -240,6 +252,7 @@ Resources:
 
   WebDistribution:
     Type: AWS::CloudFront::Distribution
+    Condition: CreateWebsite
     Properties:
       DistributionConfig:
         Enabled: true
@@ -265,6 +278,7 @@ Resources:
 
   WebBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    Condition: CreateWebsite
     Properties:
       Bucket: !Ref WebBucket
       PolicyDocument:
@@ -284,11 +298,14 @@ Outputs:
     Description: Base URL of the LocDrop API
     Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
   WebUrl:
+    Condition: CreateWebsite
     Description: The live web app (open this on any phone)
     Value: !Sub "https://${WebDistribution.DomainName}"
   WebBucketName:
+    Condition: CreateWebsite
     Value: !Ref WebBucket
   DistributionId:
+    Condition: CreateWebsite
     Value: !Ref WebDistribution
   TableName:
     Value: !Ref NotesTable

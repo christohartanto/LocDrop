@@ -1,11 +1,12 @@
 // SHARED (S-3). Runs the smoke test against the deployed API.
 // Reads the API URL from the CloudFormation stack and the login-token secret from SSM, so the
 // smoke test's "with token" requests are accepted by the cloud. The secret is never printed.
-// Usage: npm run smoke:aws
+// Usage: npm run smoke:aws      (Learner Lab: npm run smoke:aws -- --learner-lab)
 
 import { spawnSync } from "node:child_process";
 
-const REGION = process.env.AWS_REGION ?? "ap-southeast-2";
+const learnerLab = process.argv.includes("--learner-lab");
+const REGION = process.env.AWS_REGION ?? (learnerLab ? "us-east-1" : "ap-southeast-2");
 const STACK = "locdrop-prod";
 
 function aws(args: string[]): string {

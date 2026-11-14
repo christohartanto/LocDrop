@@ -11,7 +11,7 @@
     "seed": "npm run seed --prefix backend",
     "token": "npm run token --prefix backend --",
     "smoke": "npm run smoke --prefix backend",
-    "smoke:aws": "npm run smoke:aws --prefix backend",
+    "smoke:aws": "npm run smoke:aws --prefix backend --",
     "dev:api": "npm run dev --prefix backend",
     "dev:api:quiet": "npm run dev:quiet --prefix backend",
     "dev:web": "npm run dev --prefix frontend",

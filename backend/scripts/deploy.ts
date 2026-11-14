@@ -1,19 +1,23 @@
 // SHARED (S-3, owner: Vincent). One-command deploy to AWS using only the AWS CLI (no SAM CLI needed:
 // CloudFormation runs the SAM transform in the cloud).
 //
-//   npm run deploy               backend + frontend
-//   npm run deploy -- --backend  only the backend (template + Lambdas)
-//   npm run deploy -- --frontend only the web app (build + upload + CDN refresh)
+//   npm run deploy                  backend + frontend
+//   npm run deploy -- --backend     only the backend (template + Lambdas)
+//   npm run deploy -- --frontend    only the web app (build + upload + CDN refresh)
+//   npm run deploy -- --no-website  backend without S3/CloudFront (new accounts until AWS verifies them)
+//   npm run deploy -- --learner-lab AWS Academy Learner Lab: us-east-1, uses the lab's LabRole
+//                                   (Learner Lab can't create IAM roles). Combine with the flags above.
 //
-// Needs: `aws login` (or other valid credentials) for a PERSONAL AWS account. See docs/DEPLOY.md.
+// Needs valid AWS credentials (personal account via `aws login`, or Learner Lab keys). See docs/DEPLOY.md.
 
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const REGION = process.env.AWS_REGION ?? "ap-southeast-2";
+const learnerLab = process.argv.includes("--learner-lab");
+const REGION = process.env.AWS_REGION ?? (learnerLab ? "us-east-1" : "ap-southeast-2");
 const STAGE = "prod";
 const STACK = `locdrop-${STAGE}`;
 const JWT_PARAM = `/locdrop/${STAGE}/jwt-secret`; // must match template.yaml
@@ -22,8 +26,9 @@ const frontendDir = path.resolve(backendDir, "..", "frontend");
 const buildDir = path.join(backendDir, ".aws-build");
 
 const args = process.argv.slice(2);
+const noWebsite = args.includes("--no-website");
 const doBackend = !args.includes("--frontend");
-const doFrontend = !args.includes("--backend");
+const doFrontend = !args.includes("--backend") && !noWebsite;
 
 const step = (msg: string) => console.log(`\n▶ ${msg}`);
 
@@ -113,13 +118,48 @@ try {
     // 4. Upload code + deploy the CloudFormation stack
     step("Uploading Lambda packages");
     mkdirSync(buildDir, { recursive: true });
-    aws(["cloudformation", "package", "--template-file", path.join(backendDir, "template.yaml"),
+    let templateFile = path.join(backendDir, "template.yaml");
+    if (learnerLab) {
+      // Learner Lab can't create IAM roles: give every function the lab's existing LabRole and drop the
+      // per-function Policies (SAM would turn them into new roles). template.yaml itself stays unchanged.
+      const original = readFileSync(templateFile, "utf8");
+      const roleLine = '      Role: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole"';
+      const lab = original
+        .split(/\r?\n/)
+        .filter((line) => !/^ {6}Policies:/.test(line))
+        .flatMap((line) => (/^ {6}CodeUri: \.aws-build\//.test(line) ? [line.replace("CodeUri: .aws-build/", "CodeUri: ./"), roleLine] : [line]))
+        .join("\n");
+      const functions = (original.match(/^ {6}CodeUri: \.aws-build\//gm) ?? []).length;
+      const roles = (lab.match(/role\/LabRole/g) ?? []).length;
+      if (functions === 0 || roles !== functions || /^ {6}Policies:/m.test(lab)) {
+        throw new Error(`Learner Lab template rewrite failed (${functions} functions, ${roles} LabRole lines)`);
+      }
+      templateFile = path.join(buildDir, "template.learner-lab.yaml"); // lives next to the bundles, so CodeUri: ./<Name>/
+      writeFileSync(templateFile, lab);
+      console.log(`  Learner Lab: ${roles} functions use LabRole (no new IAM roles)`);
+    }
+    aws(["cloudformation", "package", "--template-file", templateFile,
       "--s3-bucket", artifacts, "--s3-prefix", STACK, "--output-template-file", path.join(buildDir, "packaged.yaml")], { quiet: true });
 
-    step(`Deploying stack ${STACK} (first time takes ~5–10 min, mostly CloudFront)`);
+    // A failed FIRST deploy leaves an empty stack in ROLLBACK_COMPLETE, which can't be updated: remove it first.
+    let status = "";
+    try {
+      status = aws(["cloudformation", "describe-stacks", "--stack-name", STACK, "--query", "Stacks[0].StackStatus", "--output", "text"], { quiet: true }).trim();
+    } catch {
+      /* stack doesn't exist yet */
+    }
+    if (status === "ROLLBACK_COMPLETE") {
+      step(`Removing the empty stack left by a failed first deploy (${STACK})`);
+      aws(["cloudformation", "delete-stack", "--stack-name", STACK], { quiet: true });
+      aws(["cloudformation", "wait", "stack-delete-complete", "--stack-name", STACK], { quiet: true });
+      console.log("  removed");
+    }
+
+    step(`Deploying stack ${STACK}${noWebsite ? " (backend only, no website)" : ""} (first time takes ~5–10 min)`);
     const deploy = spawnSync("aws", ["cloudformation", "deploy", "--template-file", path.join(buildDir, "packaged.yaml"),
       "--stack-name", STACK, "--capabilities", "CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND",
-      "--parameter-overrides", `Stage=${STAGE}`, "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit", env: AWS_ENV });
+      "--parameter-overrides", `Stage=${STAGE}`, `EnableWebsite=${noWebsite ? "false" : "true"}`,
+      "--no-fail-on-empty-changeset", "--region", REGION], { stdio: "inherit", env: AWS_ENV });
     if (deploy.status !== 0) {
       console.error(`\n  ✖ Stack deploy failed. See why with:\n    aws cloudformation describe-stack-events --stack-name ${STACK} --region ${REGION} --max-items 15`);
       process.exit(1);
@@ -129,7 +169,9 @@ try {
   const outputs = stackOutputs();
   writeFileSync(path.join(buildDir, "outputs.json"), JSON.stringify(outputs, null, 2) + "\n");
 
-  if (doFrontend) {
+  if (doFrontend && !outputs.WebBucketName) {
+    console.log("\n  (No website in this stack yet: it was deployed with --no-website. Skipping the web app upload.)");
+  } else if (doFrontend) {
     // 5. Build the web app pointing at the cloud API, upload it, refresh the CDN
     step(`Building the web app for ${outputs.ApiUrl}`);
     npm(["run", "build", "--prefix", frontendDir], { VITE_API_URL: outputs.ApiUrl, VITE_USE_MOCKS: "false" });
@@ -147,7 +189,10 @@ try {
     aws(["cloudfront", "create-invalidation", "--distribution-id", outputs.DistributionId, "--paths", "/*", "--output", "json"], { quiet: true });
   }
 
-  console.log(`\n✔ Deployed.\n  Web app: ${outputs.WebUrl}\n  API:     ${outputs.ApiUrl}\n  (saved to backend/.aws-build/outputs.json)`);
+  console.log(
+    `\n✔ Deployed.\n  Web app: ${outputs.WebUrl ?? "(not created yet: redeploy without --no-website once AWS verifies the account)"}` +
+      `\n  API:     ${outputs.ApiUrl}\n  (saved to backend/.aws-build/outputs.json)`,
+  );
   console.log(`  Check it: npm run smoke:aws`);
 } catch (err) {
   console.error(`\n✖ ${err instanceof Error ? err.message : String(err)}`);

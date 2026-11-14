@@ -1,6 +1,28 @@
 # Deploying LocDrop to AWS (S-3)
 
-One command deploys everything to a **personal AWS account** in **Sydney (ap-southeast-2)**, the region our AWS account was set up in. Do **not** use AWS Academy Learner Lab: it can't create the permission roles Lambda needs, its keys expire every few hours, and it is wiped when the course ends.
+One command deploys everything to AWS. **Right now we deploy to AWS Academy Learner Lab** (see the next section) for the course demo, and move to a **personal AWS account** later for a link that lasts.
+
+> Our "Make It Happen" account can't be used: it sits inside an AWS Organization that blocks Lambda.
+
+## Learner Lab (current setup)
+
+Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole`** (Learner Lab can't create IAM roles) and region **`us-east-1`**. Limits: keys expire after ~4 hours, and **everything is deleted when the course ends**.
+
+1. AWS Academy → Learner Lab → **Start Lab** (wait for the green dot) → **AWS Details → AWS CLI: Show**.
+2. Paste that `[default]` block into `C:\Users\<you>\.aws\credentials`, replacing the old `[default]` block.
+3. Check: `aws sts get-caller-identity` shows an identity containing `voclabs`.
+4. Deploy and check:
+   ```powershell
+   npm run deploy -- --learner-lab
+   npm run smoke:aws -- --learner-lab
+   ```
+   If CloudFront is blocked in your lab, deploy the API only with `npm run deploy -- --learner-lab --no-website`.
+
+The app keeps running between lab sessions; you only need fresh keys (steps 1–2) to **deploy** again.
+
+## Personal AWS account (later)
+
+Same template, same command without `--learner-lab`. The rest of this guide describes it. Accounts and notes don't move over automatically (the new account starts empty), and the link changes.
 
 ## What gets created
 
