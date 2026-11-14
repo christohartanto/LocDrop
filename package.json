@@ -15,6 +15,7 @@
     "dev:api:quiet": "npm run dev:quiet --prefix backend",
     "dev:web": "npm run dev --prefix frontend",
     "dev:web:mock": "npm run dev:mock --prefix frontend",
+    "dev:web:phone": "npm run dev:phone --prefix frontend",
     "test": "npm test --prefix backend",
     "typecheck": "npm run typecheck --prefix backend",
     "bench:a8": "npm run bench:a8 --prefix backend",
