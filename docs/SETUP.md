@@ -61,8 +61,8 @@ docker stop ddb-check
 ## 5. Project check (after Phase 0a is merged)
 
 ```powershell
-git clone https://github.com/<wendy-github-username>/locdrop.git
-cd locdrop
+git clone https://github.com/christohartanto/LocDrop.git
+cd LocDrop
 npm run setup
 npm run db:up
 npm run db:init
