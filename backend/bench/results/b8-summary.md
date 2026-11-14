@@ -1,6 +1,6 @@
 # B-8: nearby lookup, geohash 9-cell query vs full-table scan
 
-- Date: 2026-11-14T04:03:35.585Z
+- Date: 2026-11-14T07:41:00.983Z
 - Node: v24.11.1
 - CPU: AMD Ryzen 7 5700U with Radeon Graphics          (16 threads)
 - OS: Windows_NT 10.0.26300
@@ -11,12 +11,12 @@
 
 | size | method | p50 ms | p95 ms | mean examined | mean returned | mismatches |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1000 | geohash | 27.2 | 34.9 | 1.8 | 0.1 | 0 |
-| 1000 | scan | 75.4 | 139.7 | 1000 | 0.1 | 0 |
-| 10000 | geohash | 15 | 20 | 20.5 | 3.4 | 0 |
-| 10000 | scan | 1132.6 | 1480.5 | 10000 | 3.4 | 0 |
-| 50000 | geohash | 18.3 | 21.9 | 97 | 16.6 | 0 |
-| 50000 | scan | 9314.1 | 15865.5 | 50000 | 16.6 | 0 |
+| 1000 | geohash | 31.7 | 38.5 | 1.8 | 0.1 | 0 |
+| 1000 | scan | 73.8 | 83.3 | 1000 | 0.1 | 0 |
+| 10000 | geohash | 41 | 58.5 | 20.5 | 3.4 | 0 |
+| 10000 | scan | 774.4 | 1057.4 | 10000 | 3.4 | 0 |
+| 50000 | geohash | 35.3 | 42.7 | 97 | 16.6 | 0 |
+| 50000 | scan | 10464.5 | 16115.2 | 50000 | 16.6 | 0 |
 
 **Correctness:** both methods returned exactly the same notes for every query point (0 mismatches). A separate unit test (`tests/slice-b/boundary.test.ts`) checks notes just across a cell edge and corner are found.
 
@@ -24,4 +24,4 @@
 
 **Suggested charts:** (1) p50 latency vs table size, one line per method (log scale on x); (2) mean examined items vs table size, one line per method.
 
-Total benchmark time: 396.4 s.
+Total benchmark time: 522.7 s.
