@@ -11,6 +11,7 @@
     "seed": "npm run seed --prefix backend",
     "token": "npm run token --prefix backend --",
     "smoke": "npm run smoke --prefix backend",
+    "smoke:aws": "npm run smoke:aws --prefix backend --",
     "dev:api": "npm run dev --prefix backend",
     "dev:api:quiet": "npm run dev:quiet --prefix backend",
     "dev:web": "npm run dev --prefix frontend",
@@ -21,6 +22,8 @@
     "bench:a8": "npm run bench:a8 --prefix backend",
     "bench:b7": "npm run bench:b7 --prefix backend",
     "bench:b8": "npm run bench:b8 --prefix backend",
-    "bench:latency": "npm run bench:latency --prefix backend"
+    "bench:latency": "npm run bench:latency --prefix backend",
+    "build:lambdas": "npm run build:lambdas --prefix backend",
+    "deploy": "npm run deploy --prefix backend --"
   }
 }

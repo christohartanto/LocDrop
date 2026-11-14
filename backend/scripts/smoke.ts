@@ -4,6 +4,8 @@ import { signToken } from "../src/shared/auth";
 import { routes } from "../src/local/routes";
 
 const API_URL = process.env.API_URL ?? "http://localhost:3000";
+// Against AWS (npm run smoke:aws): no /health route, no dev-only routes, and API Gateway's own 404 body.
+const CLOUD = !/localhost|127\.0\.0\.1/.test(API_URL);
 const PUBLIC = new Set(["POST /auth/register", "POST /auth/login"]);
 let failures = 0;
 
@@ -33,17 +35,23 @@ async function call(method: string, path: string, token?: string, body?: unknown
 
 const concrete = (p: string) => p.replace("{id}", "smoke-does-not-exist");
 
+console.log(`Smoke test against ${API_URL}${CLOUD ? " (AWS)" : ""}\n`);
 try {
-  const health = await call("GET", "/health");
-  report(health.status === 200 && health.json?.ok === true, "GET /health", `→ ${health.status}`);
+  if (CLOUD) {
+    const me = await call("GET", "/me");
+    report(me.status === 401, "API reachable (GET /me without token → 401)", `→ ${me.status}`);
+  } else {
+    const health = await call("GET", "/health");
+    report(health.status === 200 && health.json?.ok === true, "GET /health", `→ ${health.status}`);
+  }
 } catch {
-  console.error(`FAIL  Cannot reach ${API_URL}. Start the API first: npm run dev:api`);
+  console.error(`FAIL  Cannot reach ${API_URL}. ${CLOUD ? "Check the deploy output." : "Start the API first: npm run dev:api"}`);
   process.exit(1);
 }
 
 const token = signToken("alice");
 
-for (const r of routes) {
+for (const r of routes.filter((r) => !(CLOUD && r.devOnly))) {
   const key = `${r.method} ${r.path}`;
   const path = concrete(r.path) + (r.path === "/notes/nearby" ? "?lat=22.69&lng=114.21" : "");
   const body = r.method === "GET" || r.method === "DELETE" ? undefined : {};
@@ -64,7 +72,11 @@ for (const r of routes) {
 }
 
 const unknown = await call("GET", "/does-not-exist");
-report(unknown.status === 404 && unknown.json?.error?.code === "NOT_FOUND", "GET /does-not-exist", `→ ${unknown.status}`);
+report(
+  unknown.status === 404 && (CLOUD || unknown.json?.error?.code === "NOT_FOUND"),
+  "GET /does-not-exist",
+  `→ ${unknown.status}`,
+);
 
 console.log(failures === 0 ? "\nAll smoke checks passed." : `\n${failures} smoke check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

@@ -1,0 +1,312 @@
+# SHARED (S-3, owner: Vincent). LocDrop on AWS: DynamoDB + Lambda + API Gateway (HTTP API) + S3/CloudFront.
+# Deploy with: npm run deploy   (see docs/DEPLOY.md). Region: ap-southeast-2 (Sydney), where our AWS account lives.
+# The Lambda code is bundled into .aws-build/<Name>/ by `npm run build:lambdas` first.
+# The local Express server (src/local) and the dev-only naive route are NOT deployed.
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: LocDrop (CSC4160) - location-based notes. Serverless backend + static web app.
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedPattern: "[a-z0-9-]+"
+  EnableWebsite:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Create the public web app (S3 + CloudFront). Brand-new AWS accounts can't create CloudFront until
+      AWS Support verifies them; deploy with `npm run deploy -- --no-website` until then.
+
+Conditions:
+  CreateWebsite: !Equals [!Ref EnableWebsite, "true"]
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    Handler: index.handler
+    MemorySize: 512
+    Timeout: 10
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref NotesTable
+        # Login-token secret lives in SSM Parameter Store (created once by the deploy script), never in git.
+        JWT_SECRET: "{{resolve:ssm:/locdrop/prod/jwt-secret}}"
+
+Resources:
+  # ---------------------------------------------------------------- data
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "locdrop-${Stage}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: gsi1pk, AttributeType: S }
+        - { AttributeName: gsi1sk, AttributeType: S }
+        - { AttributeName: gsi2pk, AttributeType: S }
+        - { AttributeName: gsi2sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1 # geo: CELL#<geohash7>, active notes only
+          KeySchema:
+            - { AttributeName: gsi1pk, KeyType: HASH }
+            - { AttributeName: gsi1sk, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+        - IndexName: GSI2 # author: AUTHOR#<username>
+          KeySchema:
+            - { AttributeName: gsi2pk, KeyType: HASH }
+            - { AttributeName: gsi2sk, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES # for live pop-ups (A-10) later
+
+  # ---------------------------------------------------------------- API
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        # "*" is safe here: the login token travels in the Authorization header (read only by our own app
+        # from its own storage), never in cookies, so other sites can't act as a logged-in user.
+        # It also covers the local dev server, phone mode, and whichever host serves the web app.
+        # (Note: SAM silently drops CorsConfiguration if AllowOrigins uses Fn::If, so keep this a plain list.)
+        AllowOrigins: ["*"]
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
+        MaxAge: 600
+      DefaultRouteSettings: # caps cost if someone hammers the public URL
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 50
+
+  # ---------------------------------------------------------------- functions (one per endpoint)
+  RegisterFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/RegisterFn/
+      MemorySize: 1024 # bcrypt hashing is CPU-heavy; more memory = more CPU on Lambda
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /auth/register
+
+  LoginFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/LoginFn/
+      MemorySize: 1024
+      Policies: [{ DynamoDBReadPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /auth/login
+
+  MeFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/MeFn/
+      Policies: [{ DynamoDBReadPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /me
+
+  GroupsCreateFn: # A-4 placeholder (501) until groups are built
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/GroupsCreateFn/
+      MemorySize: 256
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /groups
+
+  GroupsJoinFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/GroupsJoinFn/
+      MemorySize: 256
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /groups/join
+
+  GroupsListFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/GroupsListFn/
+      MemorySize: 256
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /groups
+
+  NotesCreateFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/NotesCreateFn/
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /notes
+
+  NotesMineFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/NotesMineFn/
+      Policies: [{ DynamoDBReadPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /notes/mine
+
+  NotesNearbyFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/NotesNearbyFn/
+      Policies: [{ DynamoDBReadPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /notes/nearby
+
+  NotesOpenFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/NotesOpenFn/
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }] # first reader consumes the note
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /notes/{id}/open
+
+  NotesRecallFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .aws-build/NotesRecallFn/
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }]
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: DELETE
+            Path: /notes/{id}
+
+  # ---------------------------------------------------------------- web app (private S3 bucket behind CloudFront, HTTPS)
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateWebsite
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  WebOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: CreateWebsite
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "locdrop-${Stage}-web"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Condition: CreateWebsite
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "LocDrop web app (${Stage})"
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200 # includes Asia edge locations (Hong Kong, Singapore, ...)
+        Origins:
+          - Id: web
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+            OriginAccessControlId: !GetAtt WebOriginAccessControl.Id
+        DefaultCacheBehavior:
+          TargetOriginId: web
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS managed "CachingOptimized"
+        CustomErrorResponses: # single-page app: unknown paths (e.g. /note/abc) serve index.html
+          - { ErrorCode: 403, ResponseCode: 200, ResponsePagePath: /index.html, ErrorCachingMinTTL: 0 }
+          - { ErrorCode: 404, ResponseCode: 200, ResponsePagePath: /index.html, ErrorCachingMinTTL: 0 }
+
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateWebsite
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${WebBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}"
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the LocDrop API
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}"
+  WebUrl:
+    Condition: CreateWebsite
+    Description: The live web app (open this on any phone)
+    Value: !Sub "https://${WebDistribution.DomainName}"
+  WebBucketName:
+    Condition: CreateWebsite
+    Value: !Ref WebBucket
+  DistributionId:
+    Condition: CreateWebsite
+    Value: !Ref WebDistribution
+  TableName:
+    Value: !Ref NotesTable
