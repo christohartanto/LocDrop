@@ -4,7 +4,7 @@ Pulled from Gummble (real screens from shipped iOS apps). **Borrow the layout an
 
 ## FE-3: Nearby screen ⭐ best match
 
-**Swarm: "Explore" nearby list:** https://gummble.com/screens/sc_5a9edb03e12945bc98b45fab0e962e7a
+**Swarm: nearby list (use it as a style reference for our Nearby screen only; LocDrop does NOT need a separate Explore page):** https://gummble.com/screens/sc_5a9edb03e12945bc98b45fab0e962e7a
 
 What to borrow:
 - Simple rows: a **pin icon** on the left, **title** in bold, then a grey line underneath with **"100 m • New York"**.
