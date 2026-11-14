@@ -1,6 +1,6 @@
 # B-7: first-reader rule under concurrency
 
-- Date: 2026-11-14T03:56:34.056Z
+- Date: 2026-11-14T07:32:15.665Z
 - Node: v24.11.1
 - CPU: AMD Ryzen 7 5700U with Radeon Graphics          (16 threads)
 - OS: Windows_NT 10.0.26300
@@ -17,7 +17,7 @@
 | gone410 | 19 | 19 | 19 |
 | otherErrors | 0 | 0 | 0 |
 | slotReleases | 1 | 1 | 1 |
-| wallMs | 160.1 | 936.3 | 236.6 |
+| wallMs | 171.9 | 264.4 | 193 |
 
 **Conclusion:** the conditional transaction (note status `active → consumed` + slot release) let exactly one reader win in every run; the other 19 were rejected with 410 and the author's slot was released exactly once.
 
