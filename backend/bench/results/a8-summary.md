@@ -1,6 +1,6 @@
 # A-8: N-note limit under concurrency, conditional transaction vs naive read-then-write
 
-- Date: 2026-11-14T07:22:02.183Z
+- Date: 2026-11-14T07:32:08.083Z
 - Node: v24.11.1
 - CPU: AMD Ryzen 7 5700U with Radeon Graphics          (16 threads)
 - OS: Windows_NT 10.0.26300
@@ -11,8 +11,8 @@
 
 | mode | runs | min successes | mean successes | max successes | runs over limit | runs with counter ≠ real notes | other errors | mean wall ms |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| conditional | 20 | 5 | 5 | 5 | 0 | 0 | 0 | 372.6 |
-| naive | 20 | 50 | 50 | 50 | 20 | 20 | 0 | 375.3 |
+| conditional | 20 | 5 | 5 | 5 | 0 | 0 | 0 | 549.7 |
+| naive | 20 | 50 | 50 | 50 | 20 | 20 | 0 | 500.7 |
 
 **Conditional version:** exactly 5 of 50 succeeded in every run, the other 45 got 409 NOTE_LIMIT_REACHED, and the counter always matched the real number of notes.
 
