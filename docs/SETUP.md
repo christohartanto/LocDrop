@@ -108,6 +108,24 @@ VITE_API_URL=http://<teammate-ip>:3000
 
 (The teammate must allow port 3000 through the firewall.)
 
+## Open the app on your phone
+
+Your phone and laptop must be on the **same Wi-Fi**. Campus Wi-Fi often blocks phones from reaching laptops ("client isolation"). If the page won't load on the phone, turn on your phone's **hotspot** and connect the laptop to it.
+
+1. On the laptop, start the API and the phone version of the app (two windows):
+   ```powershell
+   npm run dev:api
+   npm run dev:web:phone
+   ```
+2. Vite prints several `Network:` addresses. Use the one marked **Wi-Fi** (for example `https://10.30.108.100:5173/`) and open it on your phone.
+3. The phone warns **"Your connection is not private"**, because the certificate is self-made for development. Tap **Advanced → Proceed**. This is expected on your own Wi-Fi.
+4. If Windows Firewall asks whether to allow Node.js, allow it on **Private networks**.
+5. Log in and allow location when asked. Real GPS works because the page is HTTPS. To test without walking, the 📍 Dev panel works on the phone too.
+
+How it works: the app calls `/api/...` on its own address, and Vite forwards those calls to the API on the laptop (port 3000). Only port 5173 has to be reachable from the phone.
+
+Before a demo, clear out benchmark test notes with `npm run db:reset` then `npm run seed`.
+
 ## Ports used
 
 | Port | What |

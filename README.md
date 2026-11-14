@@ -139,6 +139,7 @@ npm run seed             # demo users (alice / bob / carol, password "password12
 npm run dev:api          # terminal 1: API on http://localhost:3000
 npm run dev:web          # terminal 2: app on http://localhost:5173 (uses the real local API)
 npm run dev:web:mock     # or: app with fake data, no backend needed
+npm run dev:web:phone    # or: open it on your phone (same Wi-Fi, HTTPS, real GPS); see docs/SETUP.md
 
 npm test                 # backend tests (needs DynamoDB Local running)
 ```
