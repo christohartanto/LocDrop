@@ -9,6 +9,30 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 
 ---
 
+## Live app
+
+| | Link |
+|---|---|
+| **Web app** (open on any phone) | **https://main.d26lfobsto0b1s.amplifyapp.com** |
+| API | https://4v7x6bv0dk.execute-api.us-east-1.amazonaws.com |
+
+Hosted on AWS (AWS Academy Learner Lab, `us-east-1`): web app on Amplify Hosting, API on API Gateway + Lambda, data in DynamoDB. **This link stops working when the course ends** (Learner Lab is wiped); see [Tech stack](#where-it-runs-in-the-cloud-and-why). Checked end to end with two phone-sized browsers and real GPS: drop → find nearby → first reader opens it → author sees "Read 🔥".
+
+### 1-minute demo script (two phones, standing together)
+
+1. **Phone A:** open the link → *Create account* → allow location.
+2. **Phone A:** tap **+ Drop**, write "Hi from LocDrop!", turn on **Delete after first read 🔥**, tap **Drop**. The header shows **1 / 5 notes**.
+3. **Phone B:** open the link → *Create account* → allow location. The note appears in **Nearby** with the distance and a 🔥 badge.
+4. **Phone B:** tap it → **Read it now**. The text appears with *"You were the first reader. This note is now gone for everyone else."*
+5. **Phone A:** **My notes** shows the note as **Read 🔥**, and the counter is back to **0 / 5**.
+6. *(Optional)* Walk more than 100 m away and open a note: *"Move a bit closer: this note is … m away."* The server, not the phone, decides.
+
+Talking points: the server checks distance and permission on every read; the first-reader rule and the 5-note limit hold even with many simultaneous requests (benchmarks A-8 and B-7 in `backend/bench/results/`); geohash lookup stays fast as the table grows (B-8).
+
+> Test the link right before a demo: from mainland China, connections to AWS `us-east-1` occasionally drop for a few minutes.
+
+---
+
 ## Team
 
 | Who | Does what |
@@ -344,7 +368,7 @@ Tick your box in the same pull request that finishes the item.
 - [x] **FE-6** Show "x of N notes used"; block writing when full
 - [x] **FE-7** My notes screen with a Recall button
 - [ ] **FE-8** Groups screen: create, join with code, list
-- [ ] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(Learner Lab blocks CloudFront: use AWS Amplify Hosting there, also HTTPS)*
+- [x] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(deployed on **AWS Amplify Hosting**, since Learner Lab blocks CloudFront; HTTPS, real GPS works. See [Live app](#live-app))*
 - [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
 - [x] **FE-11** Dev-only location override panel
 
@@ -375,10 +399,10 @@ Tick your box in the same pull request that finishes the item.
 
 ### 5. Finish (together)
 
-- [ ] **F-1** Point the frontend at the real backend
+- [x] **F-1** Point the frontend at the real backend *(the live app uses the AWS backend)*
 - [ ] **F-2** Test with two phones: write → note pops up on the other phone → open → first-reader delete (disappears from both) → recall
-- [ ] **F-3** Save the concurrency test results for the report
-- [ ] **F-4** Write a short "Demo" section in this README with the live link and a 1-minute demo script
+- [x] **F-3** Save the concurrency test results for the report *(`backend/bench/results/`)*
+- [x] **F-4** Write a short "Demo" section in this README with the live link and a 1-minute demo script *(see [Live app](#live-app))*
 
 ---
 
