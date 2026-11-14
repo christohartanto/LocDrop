@@ -96,6 +96,18 @@ try {
       console.error(`  ✖ Expected account ${process.env.EXPECTED_ACCOUNT} but got ${account}. Stopping.`);
       process.exit(1);
     }
+    // "Who am I" always works, even with cancelled keys, so also try a real (read-only) action.
+    try {
+      aws(["lambda", "list-functions", "--max-items", "1", "--output", "json"], { quiet: true });
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes("voc-cancel-cred")) {
+        console.error("  ✖ Your Learner Lab session has ended, so these keys no longer work.\n    Start Lab → AWS Details → AWS CLI: Show, paste the new [default] block into ~/.aws/credentials, then rerun.");
+      } else {
+        console.error(`  ✖ These credentials can't use Lambda here:\n    ${msg.split("\n").pop()}`);
+      }
+      process.exit(1);
+    }
   } catch {
     console.error("  ✖ No valid AWS credentials. Sign in first:  aws login   (see docs/DEPLOY.md)");
     process.exit(1);
