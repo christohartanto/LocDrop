@@ -128,8 +128,8 @@ Kickoff prompts: `docs/prompts/saturday-eugene.md`, `saturday-vincent.md`, `satu
 Install the tools first: see [`docs/SETUP.md`](docs/SETUP.md).
 
 ```powershell
-git clone https://github.com/<wendy-github-username>/locdrop.git
-cd locdrop
+git clone https://github.com/christohartanto/LocDrop.git
+cd LocDrop
 npm run setup            # installs backend + frontend packages
 
 npm run db:up            # start DynamoDB Local in Docker
