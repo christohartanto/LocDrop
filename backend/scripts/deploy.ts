@@ -109,7 +109,9 @@ try {
       aws(["s3api", "head-bucket", "--bucket", artifacts], { quiet: true });
       console.log("  already exists");
     } catch {
-      aws(["s3api", "create-bucket", "--bucket", artifacts, "--create-bucket-configuration", `LocationConstraint=${REGION}`], { quiet: true });
+      // us-east-1 is S3's default region and rejects an explicit LocationConstraint
+      const where = REGION === "us-east-1" ? [] : ["--create-bucket-configuration", `LocationConstraint=${REGION}`];
+      aws(["s3api", "create-bucket", "--bucket", artifacts, ...where], { quiet: true });
       aws(["s3api", "put-public-access-block", "--bucket", artifacts, "--public-access-block-configuration",
         "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"], { quiet: true });
       console.log("  created");

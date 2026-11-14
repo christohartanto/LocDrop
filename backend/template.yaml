@@ -72,10 +72,11 @@ Resources:
     Type: AWS::Serverless::HttpApi
     Properties:
       CorsConfiguration:
-        AllowOrigins: !If
-          - CreateWebsite
-          - [!Sub "https://${WebDistribution.DomainName}", "http://localhost:5173", "https://localhost:5173"]
-          - ["http://localhost:5173", "https://localhost:5173"]
+        # "*" is safe here: the login token travels in the Authorization header (read only by our own app
+        # from its own storage), never in cookies, so other sites can't act as a logged-in user.
+        # It also covers the local dev server, phone mode, and whichever host serves the web app.
+        # (Note: SAM silently drops CorsConfiguration if AllowOrigins uses Fn::If, so keep this a plain list.)
+        AllowOrigins: ["*"]
         AllowHeaders: [authorization, content-type]
         AllowMethods: [GET, POST, DELETE, OPTIONS]
         MaxAge: 600
