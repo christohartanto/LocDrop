@@ -93,7 +93,7 @@ app.use((req, res) => {
   res.status(404).json({ error: { code: "NOT_FOUND", message: `No route for ${req.method} ${req.path}` } });
 });
 
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`LocDrop local API on http://localhost:${PORT} (table ${config.tableName} @ ${config.dynamoEndpoint ?? "AWS"})`);
   try {
     await ddb.send(new DescribeTableCommand({ TableName: config.tableName }));
@@ -105,4 +105,16 @@ app.listen(PORT, async () => {
       console.warn(`⚠ Cannot reach DynamoDB at ${config.dynamoEndpoint}. Is Docker running? Run: npm run db:up`);
     }
   }
+});
+
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n✖ Port ${PORT} is already in use. Another LocDrop server is probably still running.`);
+    console.error("  Close the other terminal running it, or find and stop it with:");
+    console.error(`    Get-NetTCPConnection -LocalPort ${PORT} -State Listen | Select-Object OwningProcess`);
+    console.error("    Stop-Process -Id <OwningProcess>");
+    console.error("  Or use another port:  $env:PORT=\"3001\"; npm run dev:api\n");
+    process.exit(1);
+  }
+  throw err;
 });
