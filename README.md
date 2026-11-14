@@ -21,7 +21,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 
 | Step | Who | Status |
 |---|---|---|
-| 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | In progress (S-7 left) |
+| 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
 | 1. Midterm prototype, local only | Each person | Not started |
 | 0b. AWS setup and deploy (after midterm) | Vincent | Not started |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
@@ -69,18 +69,18 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 - [x] **S-4** @Wendy Shared helpers: config, database, geohash + distance, HTTP responses
 - [x] **S-5** @Wendy Shared login check (`withAuth`) + password hashing
 - [x] **S-6** @Wendy `slots/index.ts` (working `reserveSlot` / `releaseSlot`) and `groups/membership.ts` (`isMember` always returns `false` for now)
-- [ ] **S-7** @Eugene Frontend project + fake API data for every endpoint
+- [x] **S-7** @Eugene Frontend project + fake API data for every endpoint
 - [x] **S-8** @Wendy Local dev server, DynamoDB Local `docker-compose.yml`, create-table script, seed script, benchmark helpers
 
 **Saturday: Frontend (@Eugene)**
-- [ ] **FE-1** Register and login screens
-- [ ] **FE-2** Get the phone's location; handle "permission denied"
-- [ ] **FE-3** Nearby screen
-- [ ] **FE-4** Open a note
-- [ ] **FE-5** Write note screen (group option shown as "coming soon")
-- [ ] **FE-6** "x of N notes used"
-- [ ] **FE-7** My notes screen with Recall
-- [ ] **FE-11** *(new)* Dev-only location override panel (fake your location without walking)
+- [x] **FE-1** Register and login screens
+- [x] **FE-2** Get the phone's location; handle "permission denied"
+- [x] **FE-3** Nearby screen
+- [x] **FE-4** Open a note
+- [x] **FE-5** Write note screen (group option shown as "coming soon")
+- [x] **FE-6** "x of N notes used"
+- [x] **FE-7** My notes screen with Recall
+- [x] **FE-11** *(new)* Dev-only location override panel (fake your location without walking)
 
 **Saturday: Backend part A (@Vincent)**
 - [ ] **A-1** Register · **A-2** Login · **A-3** `GET /me`
@@ -277,22 +277,22 @@ Tick your box in the same pull request that finishes the item.
 - [x] **S-4** @Wendy Shared helpers: config, database table layout, geohash + distance functions
 - [x] **S-5** @Vincent Shared login check that every protected endpoint uses
 - [x] **S-6** @Vincent Empty versions of `releaseSlot`, `reserveSlot`, `isMember` so Wendy can start
-- [ ] **S-7** @Eugene Frontend project + fake API data for every endpoint
+- [x] **S-7** @Eugene Frontend project + fake API data for every endpoint
 - [x] **S-8** @Wendy Local dev server, DynamoDB Local, create-table and seed scripts, benchmark helpers
 
 ### 2. Frontend (@Eugene)
 
-- [ ] **FE-1** Register and login screens (no email)
-- [ ] **FE-2** Get the phone's location; handle "permission denied"
-- [ ] **FE-3** Nearby screen: list of notes near me with distance, author (or "Anonymous") and group
-- [ ] **FE-4** Open a note: send current location, show only what the server returns, handle "too far" and "already gone"
+- [x] **FE-1** Register and login screens (no email)
+- [x] **FE-2** Get the phone's location; handle "permission denied"
+- [x] **FE-3** Nearby screen: list of notes near me with distance, author (or "Anonymous") and group
+- [x] **FE-4** Open a note: send current location, show only what the server returns, handle "too far" and "already gone"
 - [ ] **FE-5** Write note screen: text, public or group, anonymous on/off, "delete after first read" on/off
-- [ ] **FE-6** Show "x of N notes used"; block writing when full
-- [ ] **FE-7** My notes screen with a Recall button
+- [x] **FE-6** Show "x of N notes used"; block writing when full
+- [x] **FE-7** My notes screen with a Recall button
 - [ ] **FE-8** Groups screen: create, join with code, list
 - [ ] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront
 - [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
-- [ ] **FE-11** Dev-only location override panel
+- [x] **FE-11** Dev-only location override panel
 
 ### 3. Backend part A (@Vincent)
 
