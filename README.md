@@ -22,7 +22,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 | Step | Who | Status |
 |---|---|---|
 | 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
-| 1. Midterm prototype, local only | Each person | Not started |
+| 1. Midterm prototype, local only | Each person | Done (final benchmark run on one machine still to do) |
 | 0b. AWS setup and deploy (after midterm) | Vincent | Not started |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Connect frontend to real backend and test on campus | All | Not started |
@@ -83,11 +83,11 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 - [x] **FE-11** *(new)* Dev-only location override panel (fake your location without walking)
 
 **Saturday: Backend part A (@Vincent)**
-- [ ] **A-1** Register · **A-2** Login · **A-3** `GET /me`
-- [ ] **A-5** Own and test `reserveSlot` / `releaseSlot`
-- [ ] **A-6** Write note · **A-7** `GET /notes/mine`
-- [ ] **A-8** N-limit benchmark: naive vs conditional write
-- [ ] **L-1** *(new)* Latency table: p50/p95 for every implemented endpoint
+- [x] **A-1** Register · **A-2** Login · **A-3** `GET /me`
+- [x] **A-5** Own and test `reserveSlot` / `releaseSlot`
+- [x] **A-6** Write note · **A-7** `GET /notes/mine`
+- [x] **A-8** N-limit benchmark: naive vs conditional write
+- [x] **L-1** *(new)* Latency table: p50/p95 for every implemented endpoint
 
 **Saturday: Backend part B (@Wendy)**
 - [x] **B-1** Nearby lookup (9 geohash cells) · **B-2** Exact distance check
@@ -296,17 +296,17 @@ Tick your box in the same pull request that finishes the item.
 
 ### 3. Backend part A (@Vincent)
 
-- [ ] **A-1** Register: unique username, hashed password, no email
-- [ ] **A-2** Login: returns a token
-- [ ] **A-3** `GET /me`
+- [x] **A-1** Register: unique username, hashed password, no email
+- [x] **A-2** Login: returns a token
+- [x] **A-3** `GET /me`
 - [ ] **A-4** Groups: create, join with code, list; `isMember` function
-- [ ] **A-5** Slot count: `reserveSlot` only succeeds if the user has fewer than N notes; `releaseSlot` gives one back. Both use DynamoDB conditional writes
-- [ ] **A-6** Write note: check group membership, save location + geohash, reserve a slot in the same transaction
-- [ ] **A-7** `GET /notes/mine`
-- [ ] **A-8** **Concurrency test:** one user sends 50 "write note" requests at once with N = 5 → exactly 5 succeed (compare with a naive version)
+- [x] **A-5** Slot count: `reserveSlot` only succeeds if the user has fewer than N notes; `releaseSlot` gives one back. Both use DynamoDB conditional writes
+- [x] **A-6** Write note: check group membership, save location + geohash, reserve a slot in the same transaction
+- [x] **A-7** `GET /notes/mine`
+- [x] **A-8** **Concurrency test:** one user sends 50 "write note" requests at once with N = 5 → exactly 5 succeed (compare with a naive version)
 - [ ] **A-9** WebSocket connect / disconnect / location: check the login token, save each connection with its geohash area, delete it on disconnect
 - [ ] **A-10** `notify` function (triggered by DynamoDB Streams): when a note is added, push `note_nearby` to connections in range that are allowed to see it (same distance + group rules as B-2/B-3); when a note is removed, push `note_gone`. Skip the author's own connection
-- [ ] **L-1** Latency table for every endpoint
+- [x] **L-1** Latency table for every endpoint
 
 ### 4. Backend part B (@Wendy)
 
