@@ -9,6 +9,30 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 
 ---
 
+## Live app
+
+| | Link |
+|---|---|
+| **Web app** (open on any phone) | **https://main.d26lfobsto0b1s.amplifyapp.com** |
+| API | https://4v7x6bv0dk.execute-api.us-east-1.amazonaws.com |
+
+Hosted on AWS (AWS Academy Learner Lab, `us-east-1`): web app on Amplify Hosting, API on API Gateway + Lambda, data in DynamoDB. **This link stops working when the course ends** (Learner Lab is wiped); see [Tech stack](#where-it-runs-in-the-cloud-and-why). Checked end to end with two phone-sized browsers and real GPS: drop → find nearby → first reader opens it → author sees "Read 🔥".
+
+### 1-minute demo script (two phones, standing together)
+
+1. **Phone A:** open the link → *Create account* → allow location.
+2. **Phone A:** tap **+ Drop**, write "Hi from LocDrop!", turn on **Delete after first read 🔥**, tap **Drop**. The header shows **1 / 5 notes**.
+3. **Phone B:** open the link → *Create account* → allow location. The note appears in **Nearby** with the distance and a 🔥 badge.
+4. **Phone B:** tap it → **Read it now**. The text appears with *"You were the first reader. This note is now gone for everyone else."*
+5. **Phone A:** **My notes** shows the note as **Read 🔥**, and the counter is back to **0 / 5**.
+6. *(Optional)* Walk more than 100 m away and open a note: *"Move a bit closer: this note is … m away."* The server, not the phone, decides.
+
+Talking points: the server checks distance and permission on every read; the first-reader rule and the 5-note limit hold even with many simultaneous requests (benchmarks A-8 and B-7 in `backend/bench/results/`); geohash lookup stays fast as the table grows (B-8).
+
+> Test the link right before a demo: from mainland China, connections to AWS `us-east-1` occasionally drop for a few minutes.
+
+---
+
 ## Team
 
 | Who | Does what |
@@ -22,16 +46,19 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 | Step | Who | Status |
 |---|---|---|
 | 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Done |
-| 1. Midterm prototype, local only | Each person | Done (final benchmark run on one machine still to do) |
-| 0b. AWS setup and deploy (after midterm) | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; smoke 22/22, cloud user flow 16/16). Public website link is FE-9 |
+| 1. Midterm prototype, local only | Each person | Done (all four benchmarks run on one machine, results in `backend/bench/results/`) |
+| 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
+| FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
-| 3. Connect frontend to real backend and test on campus | All | Not started |
+| 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
 
-## Midterm prototype (due Sunday)
+## Midterm prototype (done)
 
-**Goal:** a working local prototype by **Saturday night**, plus benchmark results (CSV files + summary tables) for the midterm report. **No AWS before the midterm.**
+> **Done.** This section is kept as a record of how the midterm was planned and built. For running the app today see [Run locally](#run-locally-from-a-fresh-clone) and [Live app](#live-app).
+
+**Goal (met):** a working local prototype by **Saturday night**, plus benchmark results (CSV files + summary tables) for the midterm report. No AWS before the midterm.
 
 ### How it runs locally
 
@@ -57,7 +84,7 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 | **0a** | Friday night | S-1, S-2, S-4, S-5, S-6, S-8: all shared backend code, generated in one session (`docs/prompts/phase0a-wendy.md`) | Wendy |
 | **0a** | Friday night, in parallel | S-7: frontend project + fake API data | Eugene |
 | **0a** | Friday night | Install tools (`docs/SETUP.md`); review `api.md` and Wendy's PR | Vincent |
-| **0b** | After the midterm | S-3: `template.yaml`, AWS SAM, deploy | Vincent |
+| **0b** | After the midterm (done) | S-3: `template.yaml`, AWS SAM, deploy (to AWS Academy Learner Lab; see [Tech stack](#tech-stack)) | Vincent |
 
 > For the midterm, Wendy's Phase 0a session generates S-2, S-5 and S-6 (normally Vincent's) so all shared code comes from one place. Vincent owns `slots/` and `auth/` from Saturday on.
 
@@ -96,7 +123,7 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 - [x] **B-7** First-reader benchmark
 - [x] **B-8** *(new)* Nearby benchmark: geohash vs full-table scan at 1k / 10k / 50k notes, plus a cell-edge correctness test
 
-**Deferred until after the midterm:** S-3, A-4, A-9, A-10, FE-8, FE-9, FE-10, group permissions.
+**Deferred until after the midterm:** S-3 *(now done)*, A-4, A-9, A-10, FE-8, FE-9 *(now done)*, FE-10, group permissions.
 
 ### Benchmarks (evidence for the report)
 
@@ -155,18 +182,66 @@ npm run bench:latency
 
 DynamoDB Local keeps data **in memory**. After restarting Docker, run `npm run db:init` and `npm run seed` again.
 
+### Use the cloud backend from your laptop
+
+The app on your laptop can talk to the AWS backend instead of the local one (no Docker needed):
+
+```powershell
+$env:VITE_API_URL="https://4v7x6bv0dk.execute-api.us-east-1.amazonaws.com"
+npm run dev:web
+```
+
+The cloud database is separate from your local one: register a new account there (alice/bob/carol only exist locally).
+
+### Deploy to AWS
+
+Full guide: [`docs/DEPLOY.md`](docs/DEPLOY.md). Deploy from an up-to-date `main`, so the cloud always matches `main`.
+
+```powershell
+# AWS Academy Learner Lab (current setup): Start Lab → AWS Details → copy the [default] keys into ~/.aws/credentials, then:
+npm run deploy -- --learner-lab            # backend + web app (Amplify), region us-east-1
+npm run smoke:aws -- --learner-lab         # check every endpoint in the cloud
+```
+
 ---
 
 ## Tech stack
 
-- **Frontend:** React + Vite + TypeScript, hosted on S3 + CloudFront (HTTPS is needed for phone GPS)
-- **Backend:** AWS Lambda (TypeScript) behind API Gateway
-- **Live pop-ups:** API Gateway WebSocket API (phones stay connected and get new notes pushed to them)
-- **Database:** DynamoDB (one table)
-- **Deploy:** AWS SAM, on a **personal AWS account** (not AWS Academy Learner Lab, which shuts everything down after the course)
+- **Frontend:** React + Vite + TypeScript. In the cloud it's hosted on **AWS Amplify Hosting** (HTTPS, which phones need for GPS). The template can also host it on **S3 + CloudFront** instead (see below).
+- **Backend:** 11 **AWS Lambda** functions (Node.js 22, TypeScript, one per endpoint) behind an **API Gateway HTTP API**, rate-limited to cap costs
+- **Database:** **DynamoDB**, one table, on-demand billing; a geohash index finds nearby notes
+- **Login secret:** random, stored in **SSM Parameter Store**, never in git
+- **Infrastructure as code:** everything is described in [`backend/template.yaml`](backend/template.yaml) (AWS SAM) and deployed with **one command** (`npm run deploy`; only the AWS CLI is needed). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Live pop-ups (planned, A-9/A-10/FE-10):** API Gateway WebSocket API, triggered by DynamoDB Streams
 - **Local development:** Express server that calls the same Lambda handlers, plus DynamoDB Local in Docker
 
 Serverless means no server to keep running: the app stays online 24/7 and costs about $0/month at our usage.
+
+### Where it runs in the cloud (and why)
+
+```
+Phone / laptop browser
+   │ HTTPS
+   ├──▶ AWS Amplify Hosting ............ the web app (static files)
+   │
+   └──▶ API Gateway (HTTP API) ......... https://<id>.execute-api.us-east-1.amazonaws.com
+          │
+          ▼
+        11 Lambda functions ............ same handler code as local (src/auth, notes-write, notes-read, ...)
+          │
+          ▼
+        DynamoDB table "locdrop-prod" .. users + notes (+ SSM Parameter Store for the login secret)
+```
+
+| Decision | Why |
+|---|---|
+| **AWS Academy Learner Lab, region `us-east-1`** (for the course) | Our "Make It Happen" AWS account sits inside an AWS Organization that **blocks Lambda**. Learner Lab allows Lambda through its ready-made **`LabRole`**, so `npm run deploy -- --learner-lab` uses that role (Learner Lab can't create new roles) |
+| **Amplify Hosting instead of CloudFront** (in Learner Lab) | Learner Lab **blocks CloudFront**. Amplify gives the same thing we need, an HTTPS link served from AWS's CDN (it runs on CloudFront behind the scenes, managed by AWS). The template supports both: `--website=amplify` or `--website=cloudfront` |
+| **Move to a personal AWS account later** | Learner Lab **deletes everything when the course ends**, so the link won't last. Same template and command, without `--learner-lab`. New accounts need AWS Support to verify them before using CloudFront; Amplify works right away |
+
+**Learner Lab facts:**
+- The keys on the laptop expire with each ~4-hour lab session. That only matters for **deploying**.
+- **The live app keeps running between sessions.** We checked after a session ended: the API and database still answered.
 
 Settings (in `backend/src/shared/config.ts`):
 
@@ -187,11 +262,13 @@ locdrop/
 ├── api.md                    # SHARED: the API contract
 ├── docker-compose.yml        # SHARED: DynamoDB Local
 ├── package.json              # SHARED: root scripts
-├── docs/                     # SHARED: setup guide, data model, AI prompts
+├── docs/                     # SHARED: setup guide (SETUP.md), deploy guide (DEPLOY.md), data model, design references, AI prompts, screenshots
 ├── frontend/                 # Eugene
 └── backend/
-    ├── template.yaml         # SHARED (Vincent sets it up after the midterm)
-    ├── scripts/              # SHARED: create table, seed, token, smoke test
+    ├── template.yaml         # SHARED (Vincent): all AWS resources (DynamoDB, Lambda, API, Amplify or S3+CloudFront)
+    ├── scripts/              # SHARED: create table, seed, token, smoke test (local + smoke-aws),
+    │                         #         build-lambdas, deploy, lambdas.ts (which handler = which Lambda)
+    ├── .aws-build/           # generated by the deploy (bundled Lambdas, outputs.json); git-ignored
     ├── bench/
     │   ├── lib/              # SHARED: benchmark helpers
     │   ├── a8/               # Vincent
@@ -291,7 +368,7 @@ Tick your box in the same pull request that finishes the item.
 - [x] **FE-6** Show "x of N notes used"; block writing when full
 - [x] **FE-7** My notes screen with a Recall button
 - [ ] **FE-8** Groups screen: create, join with code, list
-- [ ] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(Learner Lab blocks CloudFront: use AWS Amplify Hosting there, also HTTPS)*
+- [x] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(deployed on **AWS Amplify Hosting**, since Learner Lab blocks CloudFront; HTTPS, real GPS works. See [Live app](#live-app))*
 - [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
 - [x] **FE-11** Dev-only location override panel
 
@@ -322,10 +399,10 @@ Tick your box in the same pull request that finishes the item.
 
 ### 5. Finish (together)
 
-- [ ] **F-1** Point the frontend at the real backend
+- [x] **F-1** Point the frontend at the real backend *(the live app uses the AWS backend)*
 - [ ] **F-2** Test with two phones: write → note pops up on the other phone → open → first-reader delete (disappears from both) → recall
-- [ ] **F-3** Save the concurrency test results for the report
-- [ ] **F-4** Write a short "Demo" section in this README with the live link and a 1-minute demo script
+- [x] **F-3** Save the concurrency test results for the report *(`backend/bench/results/`)*
+- [x] **F-4** Write a short "Demo" section in this README with the live link and a 1-minute demo script *(see [Live app](#live-app))*
 
 ---
 
@@ -343,6 +420,7 @@ Tick your box in the same pull request that finishes the item.
 4. **Merge with "Squash and merge".**
 5. **Commit messages** start with the checklist ID: `A-5: add slot limit check`.
 6. **Tracking:** one GitHub Issue per checklist item (title like `[B-5] First-reader rule`). Write `Closes #12` in the PR so the Issue closes when it merges.
+7. **Deploy only from `main`,** after merging, so what's live on AWS always matches `main`.
 
 > **Note:** On a free GitHub account, branch protection doesn't work on **private** repos. Wendy can get free GitHub Pro through the [GitHub Student Developer Pack](https://education.github.com/pack), or the repo can be public. Otherwise, follow rule 1 on trust.
 
@@ -376,5 +454,6 @@ Ready-made prompts are in `docs/prompts/`.
 2. Should "delete after first read" be optional per note, or apply to every note?
 3. One radius for all notes, or can each note have its own?
 4. Should people see that a note exists before they open it?
-5. Whose personal AWS account hosts the app long-term? (Suggestion: Wendy, as the repo owner. Set a billing alert at $5.)
-6. Do we want a custom domain (e.g. `locdrop.xyz`, about $10/year) for nicer demos, or is the default AWS link fine?
+5. ~~Which AWS account hosts the app?~~ **Decided for the course:** AWS Academy Learner Lab (our "Make It Happen" account can't be used: its AWS Organization blocks Lambda). **Still open for later:** whose **personal** AWS account hosts it long-term, before the course ends and Learner Lab is wiped? (Set a Zero spend budget first.)
+6. Do we want a custom domain (e.g. `locdrop.xyz`, about $10/year)? It would also keep the link the same when we move from Learner Lab to a personal account.
+7. **Connection from mainland China:** during testing, the connection from Shenzhen to AWS `us-east-1` sometimes dropped for a few minutes (likely VPN/routing). Test before every demo. When moving to a personal account, consider a closer region (Singapore, Tokyo) if the account allows it.
