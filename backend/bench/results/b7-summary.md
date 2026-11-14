@@ -6,6 +6,7 @@
 - OS: Windows_NT 10.0.26300
 - Table: LocDrop @ http://localhost:8000
 - MAX_ACTIVE_NOTES: 5, READ_RADIUS_M: 100
+
 **Setup:** 20 runs. Each run, 20 different users (all within 5 m) call `POST /notes/{id}/open` on the same "delete after first read" note at the same moment.
 
 **Result:** 20 / 20 runs were fully correct (exactly 1 text returned, exactly 1 slot release, no unexpected errors).

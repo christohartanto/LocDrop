@@ -63,6 +63,7 @@ writeSummary(
   "b7-summary.md",
   "B-7: first-reader rule under concurrency",
   [
+    "",
     `**Setup:** ${RUNS} runs. Each run, ${READERS} different users (all within 5 m) call \`POST /notes/{id}/open\` on the same "delete after first read" note at the same moment.`,
     "",
     `**Result:** ${correct} / ${RUNS} runs were fully correct (exactly 1 text returned, exactly 1 slot release, no unexpected errors).`,

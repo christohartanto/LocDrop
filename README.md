@@ -90,11 +90,11 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 - [ ] **L-1** *(new)* Latency table: p50/p95 for every implemented endpoint
 
 **Saturday: Backend part B (@Wendy)**
-- [ ] **B-1** Nearby lookup (9 geohash cells) · **B-2** Exact distance check
-- [ ] **B-3** Permission check: **public + anonymous only** for now
-- [ ] **B-4** Open note · **B-5** First-reader rule · **B-6** Recall
-- [ ] **B-7** First-reader benchmark
-- [ ] **B-8** *(new)* Nearby benchmark: geohash vs full-table scan at 1k / 10k / 50k notes, plus a cell-edge correctness test
+- [x] **B-1** Nearby lookup (9 geohash cells) · **B-2** Exact distance check
+- [x] **B-3** Permission check: **public + anonymous only** for now
+- [x] **B-4** Open note · **B-5** First-reader rule · **B-6** Recall
+- [x] **B-7** First-reader benchmark
+- [x] **B-8** *(new)* Nearby benchmark: geohash vs full-table scan at 1k / 10k / 50k notes, plus a cell-edge correctness test
 
 **Deferred until after the midterm:** S-3, A-4, A-9, A-10, FE-8, FE-9, FE-10, group permissions.
 
@@ -310,14 +310,14 @@ Tick your box in the same pull request that finishes the item.
 
 ### 4. Backend part B (@Wendy)
 
-- [ ] **B-1** Nearby: look up notes in my geohash area + the 8 areas around it
-- [ ] **B-2** Exact distance check on the server; only return notes within the radius
+- [x] **B-1** Nearby: look up notes in my geohash area + the 8 areas around it
+- [x] **B-2** Exact distance check on the server; only return notes within the radius
 - [ ] **B-3** Permission check: public notes, or group notes only if I'm a member; hide the author name on anonymous notes
-- [ ] **B-4** Open note: re-check permission and distance on **every** read, then return the text
-- [ ] **B-5** First-reader rule: if "delete after first read" is on, only the first reader gets the text; the note is removed and the author's slot is released in the same transaction
-- [ ] **B-6** Recall: only the author can recall; the note is removed and the slot released
-- [ ] **B-7** **Concurrency test:** 20 people open the same "delete after first read" note at once → exactly 1 gets the text, and the slot is released exactly once
-- [ ] **B-8** Nearby benchmark: geohash vs full-table scan, plus a cell-edge correctness test
+- [x] **B-4** Open note: re-check permission and distance on **every** read, then return the text
+- [x] **B-5** First-reader rule: if "delete after first read" is on, only the first reader gets the text; the note is removed and the author's slot is released in the same transaction
+- [x] **B-6** Recall: only the author can recall; the note is removed and the slot released
+- [x] **B-7** **Concurrency test:** 20 people open the same "delete after first read" note at once → exactly 1 gets the text, and the slot is released exactly once
+- [x] **B-8** Nearby benchmark: geohash vs full-table scan, plus a cell-edge correctness test
 
 ### 5. Finish (together)
 
