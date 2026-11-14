@@ -1,0 +1,68 @@
+// SHARED (Phase 0a). Database item types and mappers to API types.
+
+import type { MyNote, NoteDetail, NoteStatus, NoteSummary, Visibility } from "./api-types";
+
+export interface UserItem {
+  PK: string;
+  SK: "PROFILE";
+  username: string;
+  passwordHash: string;
+  activeNoteCount: number;
+  createdAt: string;
+}
+
+export interface NoteItem {
+  PK: string;
+  SK: "META";
+  id: string;
+  authorUsername: string;
+  text: string;
+  lat: number;
+  lng: number;
+  geohash: string;
+  visibility: Visibility;
+  groupId?: string;
+  anonymous: boolean;
+  burnOnRead: boolean;
+  status: NoteStatus;
+  createdAt: string;
+  consumedBy?: string;
+  consumedAt?: string;
+  recalledAt?: string;
+  gsi1pk?: string; // present only while active
+  gsi1sk?: string;
+  gsi2pk: string;
+  gsi2sk: string;
+}
+
+export function toMyNote(n: NoteItem): MyNote {
+  return {
+    id: n.id,
+    text: n.text,
+    lat: n.lat,
+    lng: n.lng,
+    visibility: n.visibility,
+    groupId: n.groupId,
+    anonymous: n.anonymous,
+    burnOnRead: n.burnOnRead,
+    status: n.status,
+    createdAt: n.createdAt,
+    consumedAt: n.consumedAt,
+    recalledAt: n.recalledAt,
+  };
+}
+
+export function toNoteSummary(n: NoteItem, distanceM: number): NoteSummary {
+  return {
+    id: n.id,
+    distanceM: Math.round(distanceM),
+    authorName: n.anonymous ? null : n.authorUsername,
+    visibility: n.visibility,
+    burnOnRead: n.burnOnRead,
+    createdAt: n.createdAt,
+  };
+}
+
+export function toNoteDetail(n: NoteItem, distanceM: number, consumedByThisRead: boolean): NoteDetail {
+  return { ...toNoteSummary(n, distanceM), text: n.text, consumedByThisRead };
+}

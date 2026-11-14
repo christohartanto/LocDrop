@@ -1,0 +1,25 @@
+{
+  "name": "locdrop",
+  "private": true,
+  "description": "LocDrop: location-based notes (CSC4160). Root scripts only; backend and frontend are installed separately.",
+  "scripts": {
+    "setup": "npm install --prefix backend && npm install --prefix frontend",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:init": "npm run db:init --prefix backend",
+    "db:reset": "npm run db:reset --prefix backend",
+    "seed": "npm run seed --prefix backend",
+    "token": "npm run token --prefix backend --",
+    "smoke": "npm run smoke --prefix backend",
+    "dev:api": "npm run dev --prefix backend",
+    "dev:api:quiet": "npm run dev:quiet --prefix backend",
+    "dev:web": "npm run dev --prefix frontend",
+    "dev:web:mock": "npm run dev:mock --prefix frontend",
+    "test": "npm test --prefix backend",
+    "typecheck": "npm run typecheck --prefix backend",
+    "bench:a8": "npm run bench:a8 --prefix backend",
+    "bench:b7": "npm run bench:b7 --prefix backend",
+    "bench:b8": "npm run bench:b8 --prefix backend",
+    "bench:latency": "npm run bench:latency --prefix backend"
+  }
+}
