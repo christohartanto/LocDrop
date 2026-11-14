@@ -21,7 +21,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 
 | Step | Who | Status |
 |---|---|---|
-| 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | Not started |
+| 0a. Local setup (midterm) | Wendy (+ Eugene: S-7) | In progress (S-7 left) |
 | 1. Midterm prototype, local only | Each person | Not started |
 | 0b. AWS setup and deploy (after midterm) | Vincent | Not started |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
@@ -64,13 +64,13 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 ### Midterm checklist
 
 **Phase 0a (Friday night)**
-- [ ] **S-1** @Wendy Create the GitHub repo; first commit = `README.md`, `api.md`, `docs/`
-- [ ] **S-2** @all Approve `api.md` (already drafted)
-- [ ] **S-4** @Wendy Shared helpers: config, database, geohash + distance, HTTP responses
-- [ ] **S-5** @Wendy Shared login check (`withAuth`) + password hashing
-- [ ] **S-6** @Wendy `slots/index.ts` (working `reserveSlot` / `releaseSlot`) and `groups/membership.ts` (`isMember` always returns `false` for now)
+- [x] **S-1** @Wendy Create the GitHub repo; first commit = `README.md`, `api.md`, `docs/`
+- [x] **S-2** @all Approve `api.md` (already drafted)
+- [x] **S-4** @Wendy Shared helpers: config, database, geohash + distance, HTTP responses
+- [x] **S-5** @Wendy Shared login check (`withAuth`) + password hashing
+- [x] **S-6** @Wendy `slots/index.ts` (working `reserveSlot` / `releaseSlot`) and `groups/membership.ts` (`isMember` always returns `false` for now)
 - [ ] **S-7** @Eugene Frontend project + fake API data for every endpoint
-- [ ] **S-8** @Wendy Local dev server, DynamoDB Local `docker-compose.yml`, create-table script, seed script, benchmark helpers
+- [x] **S-8** @Wendy Local dev server, DynamoDB Local `docker-compose.yml`, create-table script, seed script, benchmark helpers
 
 **Saturday: Frontend (@Eugene)**
 - [ ] **FE-1** Register and login screens
@@ -271,14 +271,14 @@ Tick your box in the same pull request that finishes the item.
 
 ### 1. Setup (together, first)
 
-- [ ] **S-1** @Wendy Create the GitHub repo, add Eugene and Vincent, turn on branch protection
-- [ ] **S-2** @Vincent Write `api.md` with the request and response for every endpoint (everyone approves)
+- [ ] **S-1** @Wendy Create the GitHub repo, add Eugene and Vincent, turn on branch protection *(repo + collaborators done; branch protection pending)*
+- [x] **S-2** @Vincent Write `api.md` with the request and response for every endpoint (everyone approves)
 - [ ] **S-3** @Vincent `template.yaml` with every endpoint and the WebSocket API created as empty placeholders
-- [ ] **S-4** @Wendy Shared helpers: config, database table layout, geohash + distance functions
-- [ ] **S-5** @Vincent Shared login check that every protected endpoint uses
-- [ ] **S-6** @Vincent Empty versions of `releaseSlot`, `reserveSlot`, `isMember` so Wendy can start
+- [x] **S-4** @Wendy Shared helpers: config, database table layout, geohash + distance functions
+- [x] **S-5** @Vincent Shared login check that every protected endpoint uses
+- [x] **S-6** @Vincent Empty versions of `releaseSlot`, `reserveSlot`, `isMember` so Wendy can start
 - [ ] **S-7** @Eugene Frontend project + fake API data for every endpoint
-- [ ] **S-8** @Wendy Local dev server, DynamoDB Local, create-table and seed scripts, benchmark helpers
+- [x] **S-8** @Wendy Local dev server, DynamoDB Local, create-table and seed scripts, benchmark helpers
 
 ### 2. Frontend (@Eugene)
 
