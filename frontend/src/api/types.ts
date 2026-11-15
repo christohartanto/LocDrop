@@ -35,6 +35,8 @@ export interface MyNote {
 export interface NoteSummary {
   id: string;
   distanceM: number;         // integer metres from the caller
+  lat: number;               // where the note is (only notes in range are ever returned)
+  lng: number;
   authorName: string | null; // null = anonymous
   visibility: Visibility;
   groupName?: string;        // unused until groups are built

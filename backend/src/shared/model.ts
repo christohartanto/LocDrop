@@ -56,6 +56,8 @@ export function toNoteSummary(n: NoteItem, distanceM: number): NoteSummary {
   return {
     id: n.id,
     distanceM: Math.round(distanceM),
+    lat: n.lat,
+    lng: n.lng,
     authorName: n.anonymous ? null : n.authorUsername,
     visibility: n.visibility,
     burnOnRead: n.burnOnRead,
