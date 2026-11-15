@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { friendlyError } from "../api/errors";
 import { useSession } from "../auth/session";
+import { AuthScene } from "../components/AuthScene";
 import { EyeIcon, PinIcon } from "../components/icons";
 import { Hint } from "../components/ui";
 
@@ -46,15 +47,22 @@ export function AuthPage({ mode }: { mode: "login" | "register" }) {
 
   return (
     <div className="auth">
-      <form className="auth__card" onSubmit={onSubmit} noValidate>
-        <div className="auth__icon" aria-hidden="true">
-          <PinIcon size={30} />
+      <AuthScene />
+      <header className="auth__hero">
+        <div className="auth__brand">
+          <span className="auth__icon" aria-hidden="true">
+            <PinIcon size={26} />
+          </span>
+          LocDrop
         </div>
+        <p className="auth__slogan">
+          Leave a note where you stand. <span>Found only by those who come close.</span>
+        </p>
+      </header>
+      <form className="auth__card" onSubmit={onSubmit} noValidate>
         <h1 className="auth__title">{isRegister ? "Create your account" : "Welcome back"}</h1>
         <p className="auth__lead">
-          {isRegister
-            ? "Leave notes at real places. Only people nearby can read them."
-            : "Log in to see the notes around you."}
+          {isRegister ? "Pick a name and start dropping notes." : "Log in to see the notes around you."}
         </p>
 
         <label className="field">

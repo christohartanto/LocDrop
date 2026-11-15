@@ -1,9 +1,10 @@
-// Header (logo + "x / N notes" counter, FE-6) and bottom tab bar for logged-in screens.
+// Game HUD for logged-in screens: logo + "x / N notes" pouch (FE-6) on top, and the bottom
+// action bar (Map / big Drop button / My notes). On the map screen the HUD floats over the map.
 
 import type { ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../auth/session";
-import { LogoutIcon, NotesIcon, PinIcon, PlusIcon } from "./icons";
+import { LogoutIcon, MapIcon, NotesIcon, PinIcon, PlusIcon } from "./icons";
 
 export function Logo() {
   return (
@@ -35,8 +36,9 @@ export function SlotCounter() {
 export function AppShell({ children }: { children: ReactNode }) {
   const { username, signOut } = useSession();
   const navigate = useNavigate();
+  const onMap = useLocation().pathname === "/";
   return (
-    <div className="shell">
+    <div className={`shell ${onMap ? "shell--map" : ""}`}>
       <header className="topbar">
         <Logo />
         <div className="topbar__right">
@@ -57,12 +59,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="content">{children}</main>
       <nav className="tabbar" aria-label="Main">
         <NavLink to="/" end className="tab">
-          <PinIcon />
-          <span>Nearby</span>
+          <MapIcon />
+          <span>Map</span>
         </NavLink>
         <NavLink to="/new" className="tab tab--drop">
           <span className="tab__plus">
-            <PlusIcon />
+            <PlusIcon size={28} />
           </span>
           <span>Drop</span>
         </NavLink>

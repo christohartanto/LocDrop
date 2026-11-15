@@ -58,3 +58,20 @@ export const LogoutIcon = ({ size }: P) => (
     <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M16 17l5-5-5-5M21 12H9" />
   </svg>
 );
+export const CrosshairIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="6" />
+    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+  </svg>
+);
+export const ListIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
+  </svg>
+);
+export const MapIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4Z" />
+    <path d="M9 4v13.5M15 6.5V20" />
+  </svg>
+);

@@ -62,7 +62,7 @@ export function NotePage() {
   return (
     <section className="page page--note">
       <button className="backlink" onClick={() => navigate("/")}>
-        <BackIcon size={18} /> Nearby
+        <BackIcon size={18} /> Map
       </button>
 
       {geo.status === "denied" && (
@@ -109,7 +109,7 @@ export function NotePage() {
             </div>
           )}
           <button className="btn btn--soft btn--block" onClick={() => navigate("/")}>
-            Back to nearby
+            Back to map
           </button>
         </>
       )}
@@ -130,7 +130,7 @@ export function NotePage() {
               </button>
             ) : (
               <button className="btn btn--soft btn--block" onClick={() => navigate("/")}>
-                Back to nearby
+                Back to map
               </button>
             )}
           </div>

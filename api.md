@@ -47,6 +47,8 @@ export interface MyNote {
 export interface NoteSummary {
   id: string;
   distanceM: number;         // integer metres from the caller
+  lat: number;               // where the note is (only notes in range are ever returned)
+  lng: number;
   authorName: string | null; // null = anonymous
   visibility: Visibility;
   groupName?: string;        // unused until groups are built
@@ -108,7 +110,7 @@ Errors: `400 VALIDATION_ERROR`, `403 NOT_GROUP_MEMBER`, `409 NOTE_LIMIT_REACHED`
 → `200 { notes: MyNote[] }`. All statuses, newest first.
 
 ### `GET /notes/nearby?lat=..&lng=..`
-→ `200 { notes: NoteSummary[] }`. Sorted by `distanceM` ascending. **No note text.**
+→ `200 { notes: NoteSummary[] }`. Sorted by `distanceM` ascending. **No note text.** Each note includes its `lat`/`lng` so the app can show it on the map; since only notes within the read radius are returned, this reveals nothing about notes the caller could not open anyway.
 Includes only notes that are:
 - `active`,
 - within the read radius (100 m), measured by the server, and
