@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<MyNote["status"], string> = {
 };
 
 export function MyNotesPage() {
-  const { refreshMe } = useSession();
+  const { refreshMe, me } = useSession();
   const toast = useToast();
   const [notes, setNotes] = useState<MyNote[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +58,24 @@ export function MyNotesPage() {
     <section className="page">
       <div className="page__head">
         <div>
-          <h1 className="page__title">My notes</h1>
+          <h1 className="page__title">Your drops</h1>
           <p className="page__sub">{notes ? `${active} active · ${notes.length} total` : "Your notes and their status"}</p>
         </div>
       </div>
+
+      {me && (
+        <div className="dropslots" aria-label={`${me.maxActiveNotes - me.activeNoteCount} drops left`}>
+          <span className="dropslots__pins" aria-hidden="true">
+            {Array.from({ length: me.maxActiveNotes }, (_, i) => (
+              <span key={i} className={`dropslots__pin ${i < me.activeNoteCount ? "is-used" : ""}`} />
+            ))}
+          </span>
+          <span className="dropslots__text">
+            <strong>{me.maxActiveNotes - me.activeNoteCount}</strong>{" "}
+            {me.maxActiveNotes - me.activeNoteCount === 1 ? "drop" : "drops"} left
+          </span>
+        </div>
+      )}
 
       {error && <Hint>{error}</Hint>}
       {notes === null && !error && <Spinner />}
@@ -81,9 +95,9 @@ export function MyNotesPage() {
         <ul className="list list--cards">
           {notes.map((n) => (
             <li key={n.id} className={`mynote ${n.status !== "active" ? "is-done" : ""}`}>
+              <span className={`stamp stamp--${n.status}`}>{STATUS_LABEL[n.status]}</span>
               <div className="mynote__top">
-                <span className={`badge badge--${n.status}`}>{STATUS_LABEL[n.status]}</span>
-                <span className="mynote__time">{timeAgo(n.createdAt)}</span>
+                <span className="mynote__time">Dropped {timeAgo(n.createdAt)}</span>
               </div>
               <p className="mynote__text">{n.text}</p>
               <div className="mynote__tags">
