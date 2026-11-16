@@ -91,7 +91,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 1. Midterm prototype, local only | Each person | Done (all four benchmarks run on one machine, results in `backend/bench/results/`) |
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
-| Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Built and tested on branch `feat/redesign-adventure` (map walkthrough 23/23 with fake data and with a real backend; backend tests 61/61). **Waiting for:** all-three approval of the `api.md` change, PR review, then redeploy |
+| Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Built and tested on branch `feat/redesign-adventure` (map walkthrough 23/23 with fake data and with a real backend; backend tests 61/61). `api.md` change approved by all three. **Next:** merge the PR, then redeploy |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
