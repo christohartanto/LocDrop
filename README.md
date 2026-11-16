@@ -1,5 +1,7 @@
 # LocDrop
 
+> **Leave a note where you stand. Found only by those who come close.**
+
 Leave short text notes at real-world locations. Only people standing nearby can read them.
 CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) defines the scope.
 
@@ -18,18 +20,58 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 
 Hosted on AWS (AWS Academy Learner Lab, `us-east-1`): web app on Amplify Hosting, API on API Gateway + Lambda, data in DynamoDB. **This link stops working when the course ends** (Learner Lab is wiped); see [Tech stack](#where-it-runs-in-the-cloud-and-why). Checked end to end with two phone-sized browsers and real GPS: drop → find nearby → first reader opens it → author sees "Read 🔥".
 
+> **The live link still shows the previous design** until the redesign (branch `feat/redesign-adventure`) is merged and deployed. The demo script below describes the new design.
+
 ### 1-minute demo script (two phones, standing together)
 
-1. **Phone A:** open the link → *Create account* → allow location.
-2. **Phone A:** tap **+ Drop**, write "Hi from LocDrop!", turn on **Delete after first read 🔥**, tap **Drop**. The header shows **1 / 5 notes**.
-3. **Phone B:** open the link → *Create account* → allow location. The note appears in **Nearby** with the distance and a 🔥 badge.
-4. **Phone B:** tap it → **Read it now**. The text appears with *"You were the first reader. This note is now gone for everyone else."*
-5. **Phone A:** **My notes** shows the note as **Read 🔥**, and the counter is back to **0 / 5**.
+1. **Phone A:** open the link → *Create account* → allow location. The **live map** opens, centred on you with your 100 m range ring.
+2. **Phone A:** tap the big **+ Drop** button, write "Hi from LocDrop!", turn on **Delete after first read 🔥**, tap **Drop**. A pin drops ("Dropped!"); the header shows **1 / 5 notes**.
+3. **Phone B:** open the link → *Create account* → allow location. A 🔥 **pin appears on the map** where Phone A is standing ("1 note in range").
+4. **Phone B:** tap the pin → **Read note** → **Read it now**. The note opens with *"Achievement unlocked: First reader"*.
+5. **Phone A:** **My notes** ("Your drops") shows the note stamped **Read 🔥**, and the counter is back to **0 / 5**.
 6. *(Optional)* Walk more than 100 m away and open a note: *"Move a bit closer: this note is … m away."* The server, not the phone, decides.
 
 Talking points: the server checks distance and permission on every read; the first-reader rule and the 5-note limit hold even with many simultaneous requests (benchmarks A-8 and B-7 in `backend/bench/results/`); geohash lookup stays fast as the table grows (B-8).
 
 > Test the link right before a demo: from mainland China, connections to AWS `us-east-1` occasionally drop for a few minutes.
+
+---
+
+## Look & feel ("Daylight Adventure")
+
+A game-like design inspired by location games such as Pokémon Go: sunny colours, a rounded font (Fredoka), chunky buttons you can "press", and a live map as the home screen.
+
+| | |
+|---|---|
+| **Opening screen** | Animated landscape (drifting clouds, a walker on a trail, note pins dropping onto the hills) with the slogan |
+| **Live map** | Tilted 3D street map in our own colours (no text labels, like a game map) that follows you as you walk. Your marker, a 100 m range ring, and **bobbing pins** for notes in range: ✉ normal, 🔥 delete after first read, purple **?** anonymous. Tap a pin for a preview card; the "x notes in range" chip opens a list |
+| **Radar fallback** | If the map service can't load (e.g. blocked network), the app switches to a radar: you in the centre, range rings, and the same pins by real direction and distance |
+| **Write note** | "Drop a note here", an ink bar that fills as you type, and a pin-drop animation when you tap **Drop** |
+| **Open note** | Big note card with a sparkle burst; first readers get *"Achievement unlocked: First reader"* |
+| **My notes** | "Your drops": your 5 slots as pins ("N drops left") and rubber-stamp statuses |
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/redesign/01-opening.png" width="200" alt="Opening screen"><br>Opening screen</td>
+    <td align="center"><img src="docs/screenshots/redesign/02-map.png" width="200" alt="Live map"><br>Live map</td>
+    <td align="center"><img src="docs/screenshots/redesign/03-pin-card.png" width="200" alt="Tap a pin"><br>Tap a pin</td>
+    <td align="center"><img src="docs/screenshots/redesign/04-in-range-list.png" width="200" alt="Notes in range"><br>Notes in range</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/redesign/05-read-it-now.png" width="200" alt="Read it now?"><br>"Read it now?"</td>
+    <td align="center"><img src="docs/screenshots/redesign/06-first-reader.png" width="200" alt="First reader"><br>First reader</td>
+    <td align="center"><img src="docs/screenshots/redesign/07-drop-a-note.png" width="200" alt="Drop a note"><br>Drop a note</td>
+    <td align="center"><img src="docs/screenshots/redesign/08-dropped.png" width="200" alt="Dropped!"><br>Dropped!</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/redesign/09-your-drops.png" width="200" alt="Your drops"><br>Your drops</td>
+    <td align="center"><img src="docs/screenshots/redesign/10-radar-fallback.png" width="200" alt="Radar fallback"><br>Radar fallback</td>
+    <td></td>
+    <td></td>
+  </tr>
+</table>
+
+Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, served free (no API key) by [OpenFreeMap](https://openfreemap.org) and drawn with [MapLibre GL JS](https://maplibre.org). The midterm-era screenshots are still in `docs/screenshots/`.
 
 ---
 
@@ -49,6 +91,7 @@ Talking points: the server checks distance and permission on every read; the fir
 | 1. Midterm prototype, local only | Each person | Done (all four benchmarks run on one machine, results in `backend/bench/results/`) |
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
+| Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Built and tested on branch `feat/redesign-adventure` (map walkthrough 23/23 with fake data and with a real backend; backend tests 61/61). **Waiting for:** all-three approval of the `api.md` change, PR review, then redeploy |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
@@ -102,7 +145,7 @@ Moving to AWS later only changes configuration: the code detects Lambda automati
 **Saturday: Frontend (@Eugene)**
 - [x] **FE-1** Register and login screens
 - [x] **FE-2** Get the phone's location; handle "permission denied"
-- [x] **FE-3** Nearby screen
+- [x] **FE-3** Nearby screen *(since the redesign: the live map with pins; see [Look & feel](#look--feel-daylight-adventure))*
 - [x] **FE-4** Open a note
 - [x] **FE-5** Write note screen (group option shown as "coming soon")
 - [x] **FE-6** "x of N notes used"
@@ -207,7 +250,8 @@ npm run smoke:aws -- --learner-lab         # check every endpoint in the cloud
 
 ## Tech stack
 
-- **Frontend:** React + Vite + TypeScript. In the cloud it's hosted on **AWS Amplify Hosting** (HTTPS, which phones need for GPS). The template can also host it on **S3 + CloudFront** instead (see below).
+- **Frontend:** React + Vite + TypeScript, "Daylight Adventure" theme (Fredoka font). In the cloud it's hosted on **AWS Amplify Hosting** (HTTPS, which phones need for GPS). The template can also host it on **S3 + CloudFront** instead (see below).
+- **Map:** [MapLibre GL JS](https://maplibre.org) with OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) (free, no API key), drawn in our own style (`frontend/src/map/style.ts`). If the map service can't be reached, the app falls back to a radar view that needs no map data.
 - **Backend:** 11 **AWS Lambda** functions (Node.js 22, TypeScript, one per endpoint) behind an **API Gateway HTTP API**, rate-limited to cap costs
 - **Database:** **DynamoDB**, one table, on-demand billing; a geohash index finds nearby notes
 - **Login secret:** random, stored in **SSM Parameter Store**, never in git
@@ -263,7 +307,7 @@ locdrop/
 ├── docker-compose.yml        # SHARED: DynamoDB Local
 ├── package.json              # SHARED: root scripts
 ├── docs/                     # SHARED: setup guide (SETUP.md), deploy guide (DEPLOY.md), data model, design references, AI prompts, screenshots
-├── frontend/                 # Eugene
+├── frontend/                 # Eugene (src/map/ = live map, map style, pins, radar fallback)
 └── backend/
     ├── template.yaml         # SHARED (Vincent): all AWS resources (DynamoDB, Lambda, API, Amplify or S3+CloudFront)
     ├── scripts/              # SHARED: create table, seed, token, smoke test (local + smoke-aws),
@@ -362,7 +406,7 @@ Tick your box in the same pull request that finishes the item.
 
 - [x] **FE-1** Register and login screens (no email)
 - [x] **FE-2** Get the phone's location; handle "permission denied"
-- [x] **FE-3** Nearby screen: list of notes near me with distance, author (or "Anonymous") and group
+- [x] **FE-3** Nearby screen: list of notes near me with distance, author (or "Anonymous") and group *(redesigned as a live map: pins for notes in range, plus a list)*
 - [x] **FE-4** Open a note: send current location, show only what the server returns, handle "too far" and "already gone"
 - [ ] **FE-5** Write note screen: text, public or group, anonymous on/off, "delete after first read" on/off
 - [x] **FE-6** Show "x of N notes used"; block writing when full
@@ -446,7 +490,7 @@ Ready-made prompts are in `docs/prompts/`.
 - "Delete after first read" is an option the author picks per note. The author opening their own note doesn't count.
 - Anonymous only hides the name from readers. The server still knows the author, so recall works.
 - A group is a set of people who joined with a code.
-- The nearby list shows distance and author, but not the text. Text appears only after opening.
+- The map shows notes **within 100 m** as pins at their real position, with distance and author, but not the text. Text appears only after opening (and the server checks distance again then). Notes farther away are never sent, so the map can't reveal them. *(Added with the redesign: `api.md` `NoteSummary` gained `lat`/`lng`.)*
 
 ## Open questions (decide as a team)
 
@@ -457,3 +501,4 @@ Ready-made prompts are in `docs/prompts/`.
 5. ~~Which AWS account hosts the app?~~ **Decided for the course:** AWS Academy Learner Lab (our "Make It Happen" account can't be used: its AWS Organization blocks Lambda). **Still open for later:** whose **personal** AWS account hosts it long-term, before the course ends and Learner Lab is wiped? (Set a Zero spend budget first.)
 6. Do we want a custom domain (e.g. `locdrop.xyz`, about $10/year)? It would also keep the link the same when we move from Learner Lab to a personal account.
 7. **Connection from mainland China:** during testing, the connection from Shenzhen to AWS `us-east-1` sometimes dropped for a few minutes (likely VPN/routing). Test before every demo. When moving to a personal account, consider a closer region (Singapore, Tokyo) if the account allows it.
+8. **Map data from mainland China:** the map tiles come from OpenFreeMap (outside China). If they're blocked or slow on some networks, the app shows the radar instead, which still works. For a China-first demo, a China-friendly map provider could be added later.
