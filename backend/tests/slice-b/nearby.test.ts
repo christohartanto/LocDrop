@@ -25,6 +25,19 @@ describe("GET /notes/nearby (B-1, B-2, B-3)", () => {
     expect(res.body.notes[0].authorName).toBe(author.username);
   });
 
+  it("each nearby note includes its exact position (for the map), and only in-range notes are returned", async () => {
+    const spot = freshSpot();
+    const author = await createUser(uniqueName("auth"));
+    const reader = await createUser(uniqueName("read"));
+    const inRange = await createNoteDirect(author.username, { ...offsetMeters(spot.lat, spot.lng, 40, -30) });
+    const farAway = await createNoteDirect(author.username, { ...offsetMeters(spot.lat, spot.lng, 0, 150) });
+
+    const res = parse(await nearby(makeEvent({ token: reader.token, query: query(spot) })));
+    expect(res.body.notes).toHaveLength(1);
+    expect(res.body.notes[0]).toMatchObject({ id: inRange.id, lat: inRange.lat, lng: inRange.lng });
+    expect(JSON.stringify(res.body)).not.toContain(farAway.id); // positions are never sent for notes out of range
+  });
+
   it("anonymous notes have authorName null", async () => {
     const spot = freshSpot();
     const author = await createUser(uniqueName("auth"));

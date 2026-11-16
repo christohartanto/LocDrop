@@ -7,7 +7,7 @@ import type { GeoJSONSource, Map as MlMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 // The map does its heavy work in a background worker. Vite bundles it and gives us its address.
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NoteSummary } from "../api/types";
 import { offsetMeters } from "../lib/geo";
 import { pinClass, pinHtml, pinLabel, playerHtml } from "./Pins";
@@ -46,6 +46,7 @@ export function GameMap(props: GameMapProps) {
   const player = useRef<Marker | null>(null);
   const pins = useRef(new Map<string, Marker>());
   const loaded = useRef(false);
+  const [ready, setReady] = useState(false);
   const latest = useRef(props);
   latest.current = props;
 
@@ -70,13 +71,28 @@ export function GameMap(props: GameMapProps) {
       return;
     }
     map.current = m;
+    if (import.meta.env.DEV) (window as unknown as { __locdropMap?: MlMap }).__locdropMap = m; // for debugging in dev only
     m.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
     m.touchZoomRotate.enable({ around: "center" });
     m.scrollZoom.enable({ around: "center" });
 
     const timeout = window.setTimeout(() => {
-      if (!loaded.current) latest.current.onFail();
+      if (!tilesArrived) latest.current.onFail();
     }, LOAD_TIMEOUT_MS);
+
+    // Our style is built into the app, so "load" fires even when the map service is unreachable.
+    // What matters is whether street data arrives: if it doesn't (or the service errors first), use the radar.
+    let tilesArrived = false;
+    m.on("sourcedata", (e) => {
+      if (e.sourceId === "world" && e.isSourceLoaded && !tilesArrived) tilesArrived = true;
+    });
+    m.on("error", (e) => {
+      const sourceId = (e as unknown as { sourceId?: string }).sourceId;
+      if (!tilesArrived && (sourceId === "world" || String(e.error?.message ?? "").includes("openfreemap"))) {
+        window.clearTimeout(timeout);
+        latest.current.onFail();
+      }
+    });
 
     m.on("load", () => {
       loaded.current = true;
@@ -91,7 +107,7 @@ export function GameMap(props: GameMapProps) {
         paint: { "line-color": "#ff7a45", "line-width": 3, "line-dasharray": [1.5, 1.5] },
         layout: { "line-cap": "round" },
       });
-      holder.current?.classList.add("is-ready");
+      setReady(true);
     });
     m.on("click", () => latest.current.onSelect(null));
 
@@ -158,5 +174,11 @@ export function GameMap(props: GameMapProps) {
     }
   }, [props.notes, props.selectedId]);
 
-  return <div ref={holder} className="gamemap" aria-label="Map of your surroundings" />;
+  // The outer box is positioned by our CSS; MapLibre styles the inner one (its CSS would otherwise
+  // override our absolute positioning and collapse the map to 0 px high).
+  return (
+    <div className={`gamemap ${ready ? "is-ready" : ""}`} aria-label="Map of your surroundings">
+      <div ref={holder} className="gamemap__canvas" />
+    </div>
+  );
 }

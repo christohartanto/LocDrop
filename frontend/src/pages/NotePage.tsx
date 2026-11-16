@@ -20,11 +20,15 @@ type View =
 
 export function NotePage() {
   const { id = "" } = useParams();
-  const summary = (useLocation().state as { summary?: NoteSummary } | null)?.summary;
+  const passedSummary = (useLocation().state as { summary?: NoteSummary } | null)?.summary;
+  // Opened from a direct link (no summary from the map): look the note up in "nearby" first, so a
+  // "delete after first read" note still asks "Read it now?" instead of burning on page load.
+  const [summary, setSummary] = useState<NoteSummary | undefined>(passedSummary);
+  const [checked, setChecked] = useState(!!passedSummary);
   const navigate = useNavigate();
   const geo = useGeolocation();
   const { refreshMe } = useSession();
-  const [view, setView] = useState<View>(summary?.burnOnRead ? { kind: "confirm" } : { kind: "opening" });
+  const [view, setView] = useState<View>(passedSummary?.burnOnRead ? { kind: "confirm" } : { kind: "opening" });
   const started = useRef(false); // the automatic open has happened (or a manual one replaced it)
   const inFlight = useRef(false); // never send two opens at once: a 2nd open of a burn note would get 410
 
@@ -48,12 +52,32 @@ export function NotePage() {
     }
   }, [id, geo.lat, geo.lng, refreshMe]);
 
+  useEffect(() => {
+    if (checked || geo.status !== "ok" || geo.lat === null || geo.lng === null) return;
+    let cancelled = false;
+    api
+      .getNearby(geo.lat, geo.lng)
+      .then((res) => {
+        if (cancelled) return;
+        const found = res.notes.find((n) => n.id === id);
+        if (found) setSummary(found);
+        if (found?.burnOnRead) setView({ kind: "confirm" });
+      })
+      .catch(() => {
+        /* not critical: the open request below gives the real answer */
+      })
+      .finally(() => !cancelled && setChecked(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [checked, geo.status, geo.lat, geo.lng, id]);
+
   // Non-burn notes open straight away (once), as soon as we know where I am.
   // Burn notes start in "confirm" and only open when the reader taps "Read it now".
   useEffect(() => {
-    if (view.kind !== "opening" || started.current || geo.status !== "ok") return;
+    if (!checked || view.kind !== "opening" || started.current || geo.status !== "ok") return;
     void open();
-  }, [view.kind, geo.status, open]);
+  }, [checked, view.kind, geo.status, open]);
 
   const header = summary
     ? `${summary.authorName ?? "Anonymous"} · ${formatDistance(summary.distanceM)} away`
@@ -95,6 +119,11 @@ export function NotePage() {
       {view.kind === "open" && (
         <>
           <div className="notecard notecard--reveal">
+            <span className="sparkles" aria-hidden="true">
+              {Array.from({ length: 10 }, (_, i) => (
+                <i key={i} style={{ ["--a" as string]: `${i * 36}deg`, ["--d" as string]: `${i % 2 ? 70 : 105}px` }} />
+              ))}
+            </span>
             <div className="notecard__head">
               {view.note.authorName ?? "Anonymous"} · {formatDistance(view.note.distanceM)} away
             </div>
@@ -104,8 +133,14 @@ export function NotePage() {
             </div>
           </div>
           {view.note.consumedByThisRead && (
-            <div className="burned">
-              <span aria-hidden="true">🔥</span> You were the first reader. This note is now gone for everyone else.
+            <div className="achievement" role="status">
+              <span className="achievement__medal" aria-hidden="true">
+                🔥
+              </span>
+              <span>
+                <span className="achievement__title">Achievement unlocked: First reader</span>
+                <span className="achievement__text">You were the first reader. This note is now gone for everyone else.</span>
+              </span>
             </div>
           )}
           <button className="btn btn--soft btn--block" onClick={() => navigate("/")}>
