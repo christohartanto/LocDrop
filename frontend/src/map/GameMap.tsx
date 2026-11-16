@@ -77,8 +77,22 @@ export function GameMap(props: GameMapProps) {
     m.scrollZoom.enable({ around: "center" });
 
     const timeout = window.setTimeout(() => {
-      if (!loaded.current) latest.current.onFail();
+      if (!tilesArrived) latest.current.onFail();
     }, LOAD_TIMEOUT_MS);
+
+    // Our style is built into the app, so "load" fires even when the map service is unreachable.
+    // What matters is whether street data arrives: if it doesn't (or the service errors first), use the radar.
+    let tilesArrived = false;
+    m.on("sourcedata", (e) => {
+      if (e.sourceId === "world" && e.isSourceLoaded && !tilesArrived) tilesArrived = true;
+    });
+    m.on("error", (e) => {
+      const sourceId = (e as unknown as { sourceId?: string }).sourceId;
+      if (!tilesArrived && (sourceId === "world" || String(e.error?.message ?? "").includes("openfreemap"))) {
+        window.clearTimeout(timeout);
+        latest.current.onFail();
+      }
+    });
 
     m.on("load", () => {
       loaded.current = true;
