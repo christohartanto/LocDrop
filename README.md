@@ -18,9 +18,7 @@ CSC4160 Cloud Computing final project. The proposal (`CSC4160 Proposal-1.pdf`) d
 | **Web app** (open on any phone) | **https://main.d26lfobsto0b1s.amplifyapp.com** |
 | API | https://4v7x6bv0dk.execute-api.us-east-1.amazonaws.com |
 
-Hosted on AWS (AWS Academy Learner Lab, `us-east-1`): web app on Amplify Hosting, API on API Gateway + Lambda, data in DynamoDB. **This link stops working when the course ends** (Learner Lab is wiped); see [Tech stack](#where-it-runs-in-the-cloud-and-why). Checked end to end with two phone-sized browsers and real GPS: drop → find nearby → first reader opens it → author sees "Read 🔥".
-
-> **The live link still shows the previous design** until the redesign (branch `feat/redesign-adventure`) is merged and deployed. The demo script below describes the new design.
+Hosted on AWS (AWS Academy Learner Lab, `us-east-1`): web app on Amplify Hosting, API on API Gateway + Lambda, data in DynamoDB. **This link stops working when the course ends** (Learner Lab is wiped); see [Tech stack](#where-it-runs-in-the-cloud-and-why). Checked end to end on the live link (redesign) with two phone-sized browsers and real GPS: drop → 🔥 pin appears on the other phone's map → first reader opens it ("Achievement unlocked") → author sees "Read 🔥".
 
 ### 1-minute demo script (two phones, standing together)
 
@@ -91,7 +89,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 1. Midterm prototype, local only | Each person | Done (all four benchmarks run on one machine, results in `backend/bench/results/`) |
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
-| Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Built and tested on branch `feat/redesign-adventure` (map walkthrough 23/23 with fake data and with a real backend; backend tests 61/61). `api.md` change approved by all three. **Next:** merge the PR, then redeploy |
+| Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
 | 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
