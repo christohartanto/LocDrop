@@ -61,6 +61,12 @@ export interface NoteDetail extends NoteSummary {
   consumedByThisRead: boolean; // true = this read triggered "delete after first read"
 }
 
+export interface CreateGroupRequest { name: string }
+export interface JoinGroupRequest { joinCode: string }
+export interface Group { groupId: string; name: string; joinCode: string } // any member may share the code
+export type CreateGroupResponse = Group;
+export interface GroupList { groups: Group[] }  // sorted by name
+
 export type ErrorCode =
   | "VALIDATION_ERROR"     // 400
   | "UNAUTHENTICATED"      // 401
@@ -86,6 +92,8 @@ export interface ErrorBody { error: { code: ErrorCode; message: string } }
 | `text` | 1–280 characters after trimming |
 | `lat`, `lng` | Numbers in range (query strings are converted to numbers) |
 | `groupId` | Required if and only if `visibility = "group"` |
+| `name` (group) | 1–40 characters after trimming |
+| `joinCode` | Upper-cased, spaces and dashes removed, then must be 6 letters or numbers |
 
 Anything invalid → `400 VALIDATION_ERROR`.
 
@@ -134,10 +142,20 @@ The server checks, in this order:
 Errors: `404 NOT_FOUND` (note doesn't exist **or** the caller isn't the author), `410 NOTE_GONE` (already consumed or recalled).
 On success, the author's slot is released.
 
-### Groups (deferred: placeholders return `501 NOT_IMPLEMENTED`)
-- `POST /groups` body `{ name }` → `201 { groupId, name, joinCode }`
-- `POST /groups/join` body `{ joinCode }` → `200 { groupId, name }`
-- `GET /groups` → `200 { groups: { groupId: string; name: string }[] }`
+### `POST /groups`
+Body `CreateGroupRequest` → `201 Group`.
+The creator is a member straight away. The join code is 6 characters from `ABCDEFGHJKMNPQRSTUVWXYZ2345679` (no look-alikes such as 0/O or 1/I) and is unique.
+Errors: `400 VALIDATION_ERROR`.
+
+### `POST /groups/join`
+Body `JoinGroupRequest` → `200 Group`.
+Codes are case-insensitive (`abc-234` works for `ABC234`). Joining a group you're already in also returns `200`.
+Errors: `400 VALIDATION_ERROR`, `404 NOT_FOUND` (no group has that code).
+
+### `GET /groups`
+→ `200 GroupList`: the groups I created or joined, sorted by name. Empty list if none.
+
+Group notes: only members can write them (`403 NOT_GROUP_MEMBER` otherwise) and only members (plus the author) see and open them. There's no "leave group" in v1.
 
 ## Dev-only routes (local server only, never deployed)
 

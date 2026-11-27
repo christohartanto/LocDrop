@@ -45,7 +45,7 @@ describe("POST /notes (A-6)", () => {
     expect(await countActiveNotes(u.username)).toBe(5);
   });
 
-  it("group note → 403 NOT_GROUP_MEMBER (groups not built yet: isMember is false)", async () => {
+  it("group note for a group I'm not in → 403 NOT_GROUP_MEMBER", async () => {
     const u = await createUser(uniqueName("grp"));
     const res = parse(await create(makeEvent({ token: u.token, body: noteBody({ visibility: "group", groupId: "g1" }) })));
     expect(res.status).toBe(403);

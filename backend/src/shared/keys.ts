@@ -16,3 +16,12 @@ export function noteIndexAttrs(n: { id: string; geohash: string; authorUsername:
     gsi2sk: n.createdAt,
   };
 }
+
+// Groups (A-4). Membership lives under the user's partition, so "my groups" is one Query and isMember one Get.
+export const groupKey = (groupId: string) => ({ PK: `GROUP#${groupId}`, SK: "META" });
+export const joinCodeKey = (code: string) => ({ PK: `JOINCODE#${code}`, SK: "META" });
+export const MEMBERSHIP_SK_PREFIX = "GROUP#";
+export const membershipKey = (username: string, groupId: string) => ({
+  PK: `USER#${username}`,
+  SK: `${MEMBERSHIP_SK_PREFIX}${groupId}`,
+});

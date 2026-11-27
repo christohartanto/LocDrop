@@ -131,11 +131,12 @@ Resources:
             Method: GET
             Path: /me
 
-  GroupsCreateFn: # A-4 placeholder (501) until groups are built
+  GroupsCreateFn:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .aws-build/GroupsCreateFn/
       MemorySize: 256
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }]
       Events:
         Api:
           Type: HttpApi
@@ -149,6 +150,7 @@ Resources:
     Properties:
       CodeUri: .aws-build/GroupsJoinFn/
       MemorySize: 256
+      Policies: [{ DynamoDBCrudPolicy: { TableName: !Ref NotesTable } }]
       Events:
         Api:
           Type: HttpApi
@@ -162,6 +164,7 @@ Resources:
     Properties:
       CodeUri: .aws-build/GroupsListFn/
       MemorySize: 256
+      Policies: [{ DynamoDBReadPolicy: { TableName: !Ref NotesTable } }]
       Events:
         Api:
           Type: HttpApi

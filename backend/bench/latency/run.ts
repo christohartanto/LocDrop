@@ -48,6 +48,23 @@ const specs: Spec[] = [
   },
   { endpoint: "GET /me", n: 200, prepare: async (k) => Array.from({ length: k }, () => () => request("GET", "/me", { token: reader.token })) },
   {
+    endpoint: "POST /groups",
+    n: 200,
+    prepare: async (k) => Array.from({ length: k }, () => () => request("POST", "/groups", { token: reader.token, body: { name: "latency" } })),
+  },
+  {
+    endpoint: "POST /groups/join",
+    n: 200,
+    prepare: async (k) => {
+      const owner = await createUser(uniqueName("latj"));
+      const res = (await request("POST", "/groups", { token: owner.token, body: { name: "latency join" } })).body;
+      const joiners = await Promise.all(Array.from({ length: k }, () => createUser(uniqueName("latj"))));
+      return joiners.map((u) => () => request("POST", "/groups/join", { token: u.token, body: { joinCode: res.joinCode } }));
+    },
+  },
+  // reader is in ~210 groups by now (POST /groups above), a realistic worst case for one Query
+  { endpoint: "GET /groups", n: 200, prepare: async (k) => Array.from({ length: k }, () => () => request("GET", "/groups", { token: reader.token })) },
+  {
     endpoint: "POST /notes",
     n: 200,
     prepare: async (k) => {
