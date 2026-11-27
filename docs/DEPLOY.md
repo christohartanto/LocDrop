@@ -15,6 +15,7 @@ Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole
    ```powershell
    npm run deploy -- --learner-lab
    npm run smoke:aws -- --learner-lab
+   npm run smoke:live --prefix backend -- --aws   # live pop-ups: WebSocket + DynamoDB Stream
    ```
    The deploy prints the **Web app** link (`https://main.<id>.amplifyapp.com`) and the API link.
 

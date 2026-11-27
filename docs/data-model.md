@@ -4,7 +4,8 @@ SHARED, frozen after Phase 0a. Code: `backend/src/shared/keys.ts`, `backend/src/
 
 - **Table:** `LocDrop` (override with `TABLE_NAME`; tests use `LocDropTest`, B-8 uses `LocDropBench`).
 - **Billing:** on-demand.
-- **Streams:** `NEW_AND_OLD_IMAGES` (for live pop-ups later).
+- **Streams:** `NEW_AND_OLD_IMAGES`. The `notify` Lambda reads it (filtered to `NOTE#` items) to send live pop-ups.
+- **TTL:** attribute `expiresAt` (only WebSocket connection items have it).
 - **Keys:** all key attributes are strings.
 
 ## Items
@@ -15,13 +16,14 @@ SHARED, frozen after Phase 0a. Code: `backend/src/shared/keys.ts`, `backend/src/
 | Group membership | `USER#<username>` | `GROUP#<groupId>` | `username`, `groupId`, `name`, `joinCode`, `joinedAt` |
 | Group | `GROUP#<groupId>` | `META` | `groupId`, `name`, `joinCode`, `createdBy`, `createdAt` |
 | Join code | `JOINCODE#<code>` | `META` | `joinCode`, `groupId`, `name` |
+| WebSocket connection | `CONN#<connectionId>` | `META` | `connectionId`, `username`, `connectedAt`, `expiresAt` (TTL, epoch seconds), and after the first location: `lat`, `lng`, `geohash`, `gsi1pk = WSCELL#<geohash7>`, `gsi1sk = <connectionId>` |
 | Note | `NOTE#<id>` | `META` | `id`, `authorUsername`, `text`, `lat`, `lng`, `geohash` (precision 7), `visibility`, `groupId?`, `anonymous`, `burnOnRead`, `status` (`active` / `consumed` / `recalled`), `createdAt`, `consumedBy?`, `consumedAt?`, `recalledAt?`, `gsi1pk?`, `gsi1sk?`, `gsi2pk`, `gsi2sk` |
 
 ## Indexes (both projection `ALL`)
 
 | Index | Partition key | Sort key | Notes |
 |---|---|---|---|
-| `GSI1` (geo) | `gsi1pk = CELL#<geohash7>` | `gsi1sk = <createdAt>#<id>` | **Sparse:** only active notes. Consume and recall `REMOVE gsi1pk, gsi1sk` |
+| `GSI1` (geo) | `gsi1pk = CELL#<geohash7>` | `gsi1sk = <createdAt>#<id>` | **Sparse:** only active notes. Consume and recall `REMOVE gsi1pk, gsi1sk`. Also holds WebSocket connections under `WSCELL#<geohash7>` (sort key = connection id), so they never mix with notes |
 | `GSI2` (author) | `gsi2pk = AUTHOR#<username>` | `gsi2sk = <createdAt>` | All of an author's notes, any status |
 
 ## Who writes what
@@ -47,6 +49,8 @@ SHARED, frozen after Phase 0a. Code: `backend/src/shared/keys.ts`, `backend/src/
 | Join group | `Get JOINCODE#code`, then `Put USER#u/GROUP#id` (cond attribute_not_exists, so re-joining keeps `joinedAt`) |
 | My groups | `Query PK = USER#u AND begins_with(SK, "GROUP#")` |
 | `isMember(u, g)` | `Get USER#u/GROUP#g` |
+| Phone connects / moves / leaves | `Put CONN#id` / `Update CONN#id` (cond attribute_exists) / `Delete CONN#id` |
+| Connections near a note (notify) | `Query GSI1` for `WSCELL#<cell>` over the note's 9 cells, then exact distance ≤ 100 m (`note_nearby` only) |
 | Open note | `Get NOTE#id` (consistent read) |
 | Consume (first reader) | `TransactWrite [ Update NOTE#id (SET status=consumed…, REMOVE gsi1pk, gsi1sk; cond status = active), Update USER#author (ADD -1, cond > 0) ]` |
 | Recall | `TransactWrite [ Update NOTE#id (SET status=recalled…, REMOVE gsi1*; cond status = active AND authorUsername = caller), Update USER#author (ADD -1, cond > 0) ]` |

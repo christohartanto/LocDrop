@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { routes } from "../src/local/routes";
-import { lambdas } from "./lambdas";
+import { isHttp, lambdas } from "./lambdas";
 
 const backendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outRoot = path.join(backendDir, ".aws-build");
@@ -16,12 +16,13 @@ const outRoot = path.join(backendDir, ".aws-build");
 const template = readFileSync(path.join(backendDir, "template.yaml"), "utf8");
 const problems: string[] = [];
 for (const r of routes.filter((r) => !r.devOnly)) {
-  if (!lambdas.some((l) => l.method === r.method && l.path === r.path)) problems.push(`route ${r.method} ${r.path} has no Lambda in scripts/lambdas.ts`);
+  if (!lambdas.filter(isHttp).some((l) => l.method === r.method && l.path === r.path)) problems.push(`route ${r.method} ${r.path} has no Lambda in scripts/lambdas.ts`);
 }
 for (const l of lambdas) {
   if (!new RegExp(`^  ${l.name}:`, "m").test(template)) problems.push(`${l.name} missing from template.yaml`);
   if (!template.includes(`CodeUri: .aws-build/${l.name}/`)) problems.push(`${l.name}: template.yaml must use CodeUri: .aws-build/${l.name}/`);
-  if (!template.includes(`Path: ${l.path}\n`) && !template.includes(`Path: ${l.path}\r\n`)) problems.push(`${l.name}: path ${l.path} not found in template.yaml`);
+  if (isHttp(l) && !template.includes(`Path: ${l.path}\n`) && !template.includes(`Path: ${l.path}\r\n`)) problems.push(`${l.name}: path ${l.path} not found in template.yaml`);
+  if (!isHttp(l) && l.route && !template.includes(`RouteKey: ${l.route}`)) problems.push(`${l.name}: WebSocket route ${l.route} not found in template.yaml`);
 }
 if (problems.length) {
   console.error("template.yaml / routes / lambdas.ts disagree:\n  - " + problems.join("\n  - "));

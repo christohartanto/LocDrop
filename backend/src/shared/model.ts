@@ -103,3 +103,18 @@ export interface MembershipItem {
 export function toGroup(g: { groupId: string; name: string; joinCode: string }): Group {
   return { groupId: g.groupId, name: g.name, joinCode: g.joinCode };
 }
+
+// Live pop-ups (A-9).
+export interface ConnectionItem {
+  PK: string; // CONN#<connectionId>
+  SK: "META";
+  connectionId: string;
+  username: string;
+  connectedAt: string;
+  expiresAt: number; // epoch seconds; DynamoDB TTL removes connections whose $disconnect never arrived
+  lat?: number; // set by the first "location" message
+  lng?: number;
+  geohash?: string;
+  gsi1pk?: string; // WSCELL#<geohash7>, only once the location is known
+  gsi1sk?: string; // connectionId
+}
