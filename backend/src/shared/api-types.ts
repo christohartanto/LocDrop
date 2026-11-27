@@ -50,6 +50,12 @@ export interface NoteDetail extends NoteSummary {
   consumedByThisRead: boolean; // true = this read triggered "delete after first read"
 }
 
+export interface CreateGroupRequest { name: string }
+export interface JoinGroupRequest { joinCode: string }
+export interface Group { groupId: string; name: string; joinCode: string } // any member may share the code
+export type CreateGroupResponse = Group;
+export interface GroupList { groups: Group[] }  // sorted by name
+
 export type ErrorCode =
   | "VALIDATION_ERROR"     // 400
   | "UNAUTHENTICATED"      // 401

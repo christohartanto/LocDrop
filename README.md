@@ -90,7 +90,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
-| 2. Rest of own part (groups, live pop-ups) | Each person | Not started |
+| 2. Rest of own part (groups, live pop-ups) | Each person | Groups backend (A-4) done: backend tests 81/81, local smoke test passes. Groups screens (FE-5, FE-8) and live pop-ups not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
@@ -419,7 +419,7 @@ Tick your box in the same pull request that finishes the item.
 - [x] **A-1** Register: unique username, hashed password, no email
 - [x] **A-2** Login: returns a token
 - [x] **A-3** `GET /me`
-- [ ] **A-4** Groups: create, join with code, list; `isMember` function
+- [x] **A-4** Groups: create, join with code, list; `isMember` function *(join codes are 6 characters, case-insensitive; `GET /groups` also returns each join code so any member can invite others)*
 - [x] **A-5** Slot count: `reserveSlot` only succeeds if the user has fewer than N notes; `releaseSlot` gives one back. Both use DynamoDB conditional writes
 - [x] **A-6** Write note: check group membership, save location + geohash, reserve a slot in the same transaction
 - [x] **A-7** `GET /notes/mine`
