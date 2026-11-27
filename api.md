@@ -164,9 +164,20 @@ Group notes: only members can write them (`403 NOT_GROUP_MEMBER` otherwise) and 
 | `GET /health` | `200 { "ok": true }` |
 | `POST /dev/naive/notes` | Same as `POST /notes`, but uses a naive read-then-write slot check. Only for the A-8 benchmark |
 
-## Live pop-ups (WebSocket, deferred until after the midterm)
+## Live pop-ups (WebSocket)
 
-See the README section "Live pop-ups".
+- URL: `wss://<ws-api>/<stage>?token=<login token>` on AWS (the deploy prints it as **Live**; the web app gets it as `VITE_WS_URL`); `ws://localhost:3000/?token=<login token>` locally.
+- A missing or invalid token is refused during the handshake (HTTP 401). Connections last at most 2 hours on AWS (and close after 10 minutes with no messages), so the app reconnects when a connection drops.
+
+| Direction | Message | Meaning |
+|---|---|---|
+| Phone → server | `{ "action": "location", "lat": number, "lng": number }` | "I'm here." Send right after connecting and whenever you move ~20 m. No pop-ups arrive until the first one |
+| Server → phone | `{ "type": "note_nearby", "note": NoteSummary }` | A note was just dropped within the read radius of my last location, and I may see it (same rules as `GET /notes/nearby`). Never sent for my own notes. `distanceM` is from my last reported location |
+| Server → phone | `{ "type": "note_gone", "id": string }` | A note near me that I may see was read (first-reader rule) or recalled. Remove it if it's in my list. Sent to the author too |
+
+- Messages never contain the note text: reading still goes through `POST /notes/{id}/open`.
+- Pop-ups are best effort. After a reconnect, call `GET /notes/nearby` to catch up on anything missed.
+- Invalid messages, or other `action` values, are ignored. No reply is sent.
 
 ## Demo data (shared by seed script and frontend dev location panel)
 

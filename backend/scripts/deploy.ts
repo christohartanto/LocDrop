@@ -211,7 +211,7 @@ try {
   if (doFrontend && hosting !== "none") {
     // 5. Build the web app pointing at the cloud API
     step(`Building the web app for ${outputs.ApiUrl}`);
-    npm(["run", "build", "--prefix", frontendDir], { VITE_API_URL: outputs.ApiUrl, VITE_USE_MOCKS: "false" });
+    npm(["run", "build", "--prefix", frontendDir], { VITE_API_URL: outputs.ApiUrl, VITE_WS_URL: outputs.WsUrl ?? "", VITE_USE_MOCKS: "false" });
     dist = path.join(frontendDir, "dist");
     if (!existsSync(path.join(dist, "index.html"))) throw new Error("frontend build produced no dist/index.html");
   }
@@ -269,7 +269,7 @@ try {
 
   console.log(
     `\n✔ Deployed.\n  Web app: ${outputs.WebUrl ?? "(none: deployed with --website=none)"}${outputs.WebUrl ? `  (hosted with ${hosting})` : ""}` +
-      `\n  API:     ${outputs.ApiUrl}\n  (saved to backend/.aws-build/outputs.json)`,
+      `\n  API:     ${outputs.ApiUrl}\n  Live:    ${outputs.WsUrl ?? "(no WebSocket API)"}\n  (saved to backend/.aws-build/outputs.json)`,
   );
   console.log(`  Check it: npm run smoke:aws`);
 } catch (err) {

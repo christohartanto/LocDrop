@@ -25,3 +25,9 @@ export const membershipKey = (username: string, groupId: string) => ({
   PK: `USER#${username}`,
   SK: `${MEMBERSHIP_SK_PREFIX}${groupId}`,
 });
+
+// Live pop-ups (A-9). One item per open WebSocket connection. Once the phone has sent its location, the
+// item also sits in GSI1 under WSCELL#<geohash7>, so "connections near a note" is the same 9-cell lookup
+// as nearby notes. The prefix differs from notes' CELL#, so the two never mix.
+export const connKey = (connectionId: string) => ({ PK: `CONN#${connectionId}`, SK: "META" });
+export const connCellPk = (geohash: string) => `WSCELL#${geohash}`;

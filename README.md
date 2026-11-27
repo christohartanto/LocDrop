@@ -90,7 +90,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
-| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4, live on AWS, tests 81/81) and screens (FE-5, FE-8; mock-mode walkthrough 10/10). Live pop-ups not started |
+| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4) and screens (FE-5, FE-8), live on AWS. Live pop-ups: backend done (A-9, A-10; tests 98/98, local `smoke:live` passes); frontend (FE-10) not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
@@ -242,6 +242,7 @@ Full guide: [`docs/DEPLOY.md`](docs/DEPLOY.md). Deploy from an up-to-date `main`
 # AWS Academy Learner Lab (current setup): Start Lab → AWS Details → copy the [default] keys into ~/.aws/credentials, then:
 npm run deploy -- --learner-lab            # backend + web app (Amplify), region us-east-1
 npm run smoke:aws -- --learner-lab         # check every endpoint in the cloud
+npm run smoke:live --prefix backend -- --aws   # check live pop-ups end to end in the cloud
 ```
 
 ---
@@ -250,11 +251,11 @@ npm run smoke:aws -- --learner-lab         # check every endpoint in the cloud
 
 - **Frontend:** React + Vite + TypeScript, "Daylight Adventure" theme (Fredoka font). In the cloud it's hosted on **AWS Amplify Hosting** (HTTPS, which phones need for GPS). The template can also host it on **S3 + CloudFront** instead (see below).
 - **Map:** [MapLibre GL JS](https://maplibre.org) with OpenStreetMap data from [OpenFreeMap](https://openfreemap.org) (free, no API key), drawn in our own style (`frontend/src/map/style.ts`). If the map service can't be reached, the app falls back to a radar view that needs no map data.
-- **Backend:** 11 **AWS Lambda** functions (Node.js 22, TypeScript, one per endpoint) behind an **API Gateway HTTP API**, rate-limited to cap costs
+- **Backend:** 15 **AWS Lambda** functions (Node.js 22, TypeScript): one per endpoint behind an **API Gateway HTTP API**, plus 4 for live pop-ups. Both APIs are rate-limited to cap costs
 - **Database:** **DynamoDB**, one table, on-demand billing; a geohash index finds nearby notes
 - **Login secret:** random, stored in **SSM Parameter Store**, never in git
 - **Infrastructure as code:** everything is described in [`backend/template.yaml`](backend/template.yaml) (AWS SAM) and deployed with **one command** (`npm run deploy`; only the AWS CLI is needed). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
-- **Live pop-ups (planned, A-9/A-10/FE-10):** API Gateway WebSocket API, triggered by DynamoDB Streams
+- **Live pop-ups:** an **API Gateway WebSocket API** (connect / location / disconnect Lambdas) plus a `notify` Lambda triggered by **DynamoDB Streams** whenever a note appears or disappears. Locally the dev server provides the same WebSocket and reads DynamoDB Local's stream
 - **Local development:** Express server that calls the same Lambda handlers, plus DynamoDB Local in Docker
 
 Serverless means no server to keep running: the app stays online 24/7 and costs about $0/month at our usage.
@@ -361,7 +362,7 @@ Error codes: `VALIDATION_ERROR`, `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `USER
 
 ### Live pop-ups (WebSocket)
 
-The app opens one WebSocket connection after login: `wss://.../?token=<login token>`.
+The app opens one WebSocket connection after login: `wss://.../?token=<login token>`. Full details: [`api.md`](api.md#live-pop-ups-websocket).
 
 | Direction | Message | Meaning |
 |---|---|---|
@@ -424,8 +425,8 @@ Tick your box in the same pull request that finishes the item.
 - [x] **A-6** Write note: check group membership, save location + geohash, reserve a slot in the same transaction
 - [x] **A-7** `GET /notes/mine`
 - [x] **A-8** **Concurrency test:** one user sends 50 "write note" requests at once with N = 5 → exactly 5 succeed (compare with a naive version)
-- [ ] **A-9** WebSocket connect / disconnect / location: check the login token, save each connection with its geohash area, delete it on disconnect
-- [ ] **A-10** `notify` function (triggered by DynamoDB Streams): when a note is added, push `note_nearby` to connections in range that are allowed to see it (same distance + group rules as B-2/B-3); when a note is removed, push `note_gone`. Skip the author's own connection
+- [x] **A-9** WebSocket connect / disconnect / location: check the login token, save each connection with its geohash area, delete it on disconnect *(connections also expire via DynamoDB TTL in case $disconnect never arrives)*
+- [x] **A-10** `notify` function (triggered by DynamoDB Streams): when a note is added, push `note_nearby` to connections in range that are allowed to see it (same distance + group rules as B-2/B-3); when a note is removed, push `note_gone`. Skip the author's own connection *(check end to end: `npm run smoke:live`, locally or `-- --aws`)*
 - [x] **L-1** Latency table for every endpoint
 
 ### 4. Backend part B (@Wendy)

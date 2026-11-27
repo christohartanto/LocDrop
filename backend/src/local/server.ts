@@ -8,6 +8,7 @@ import express, { type Request, type Response } from "express";
 import { config } from "../shared/config";
 import { ddb } from "../shared/db";
 import type { Event } from "../shared/http";
+import { attachRealtime } from "./realtime";
 import { routes, type Route } from "./routes";
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -95,6 +96,7 @@ app.use((req, res) => {
 
 const server = app.listen(PORT, async () => {
   console.log(`LocDrop local API on http://localhost:${PORT} (table ${config.tableName} @ ${config.dynamoEndpoint ?? "AWS"})`);
+  console.log(`Live pop-ups: ws://localhost:${PORT}/?token=<login token>`);
   try {
     await ddb.send(new DescribeTableCommand({ TableName: config.tableName }));
   } catch (err) {
@@ -106,6 +108,9 @@ const server = app.listen(PORT, async () => {
     }
   }
 });
+
+// Live pop-ups: WebSocket on the same port (ws://localhost:PORT/?token=...) + DynamoDB Local stream → notify.
+attachRealtime(server, LOG);
 
 server.on("error", (err: NodeJS.ErrnoException) => {
   if (err.code === "EADDRINUSE") {
