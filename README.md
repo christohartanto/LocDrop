@@ -90,7 +90,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
-| 2. Rest of own part (groups, live pop-ups) | Each person | Groups backend (A-4) done: backend tests 81/81, local smoke test passes. Groups screens (FE-5, FE-8) and live pop-ups not started |
+| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4, live on AWS, tests 81/81) and screens (FE-5, FE-8; mock-mode walkthrough 10/10). Live pop-ups not started |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
@@ -406,10 +406,10 @@ Tick your box in the same pull request that finishes the item.
 - [x] **FE-2** Get the phone's location; handle "permission denied"
 - [x] **FE-3** Nearby screen: list of notes near me with distance, author (or "Anonymous") and group *(redesigned as a live map: pins for notes in range, plus a list)*
 - [x] **FE-4** Open a note: send current location, show only what the server returns, handle "too far" and "already gone"
-- [ ] **FE-5** Write note screen: text, public or group, anonymous on/off, "delete after first read" on/off
+- [x] **FE-5** Write note screen: text, public or group, anonymous on/off, "delete after first read" on/off *(group: "👥 Group only" picks one of your groups)*
 - [x] **FE-6** Show "x of N notes used"; block writing when full
 - [x] **FE-7** My notes screen with a Recall button
-- [ ] **FE-8** Groups screen: create, join with code, list
+- [x] **FE-8** Groups screen: create, join with code, list *(opens from the 👥 button in the top bar; each group shows its invite code with a Copy button. Screenshots: `docs/screenshots/groups/`)*
 - [x] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(deployed on **AWS Amplify Hosting**, since Learner Lab blocks CloudFront; HTTPS, real GPS works. See [Live app](#live-app))*
 - [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
 - [x] **FE-11** Dev-only location override panel

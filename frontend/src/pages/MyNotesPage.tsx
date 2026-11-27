@@ -23,6 +23,14 @@ export function MyNotesPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [groupNames, setGroupNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    api
+      .listGroups()
+      .then((r) => setGroupNames(Object.fromEntries(r.groups.map((g) => [g.groupId, g.name]))))
+      .catch(() => {}); // tags just say "Group" then
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -101,6 +109,9 @@ export function MyNotesPage() {
               </div>
               <p className="mynote__text">{n.text}</p>
               <div className="mynote__tags">
+                {n.visibility === "group" && (
+                  <span className="tag tag--group">👥 {(n.groupId && groupNames[n.groupId]) || "Group"}</span>
+                )}
                 {n.anonymous && <span className="tag">Anonymous</span>}
                 {n.burnOnRead && <span className="tag">Delete after first read</span>}
                 {n.status === "consumed" && n.consumedAt && <span className="tag">Read {timeAgo(n.consumedAt)}</span>}

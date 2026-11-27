@@ -5,6 +5,7 @@ import { AppShell } from "./components/AppShell";
 import { LocationOverride } from "./dev/LocationOverride";
 import { AuthPage } from "./pages/AuthPage";
 import { ComposePage } from "./pages/ComposePage";
+import { GroupsPage } from "./pages/GroupsPage";
 import { MyNotesPage } from "./pages/MyNotesPage";
 import { NotePage } from "./pages/NotePage";
 
@@ -30,6 +31,7 @@ export function App() {
             <Route path="/note/:id" element={<NotePage />} />
             <Route path="/new" element={<ComposePage />} />
             <Route path="/mine" element={<MyNotesPage />} />
+            <Route path="/groups" element={<GroupsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppShell>
