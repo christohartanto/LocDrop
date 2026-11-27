@@ -29,7 +29,7 @@ function seedNote(
   text: string,
   north: number,
   east: number,
-  opts: { anonymous?: boolean; burnOnRead?: boolean; visibility?: Visibility; minutes: number },
+  opts: { anonymous?: boolean; burnOnRead?: boolean; visibility?: Visibility; groupId?: string; minutes: number },
 ): MockNote {
   const { lat, lng } = offsetMeters(DEMO_CENTER.lat, DEMO_CENTER.lng, north, east);
   return {
@@ -39,12 +39,26 @@ function seedNote(
     lat,
     lng,
     visibility: opts.visibility ?? "public",
+    groupId: opts.groupId,
     anonymous: opts.anonymous ?? false,
     burnOnRead: opts.burnOnRead ?? false,
     status: "active",
     createdAt: minutesAgo(opts.minutes),
   };
 }
+
+// Groups: alice and bob are in "CSC4160 crew" (code CRW234); carol isn't, so she can't see its notes.
+export interface MockGroup {
+  groupId: string;
+  name: string;
+  joinCode: string;
+  members: Set<string>;
+}
+export const groups = new Map<string, MockGroup>([
+  ["grp-crew", { groupId: "grp-crew", name: "CSC4160 crew", joinCode: "CRW234", members: new Set(["alice", "bob"]) }],
+]);
+export const isMember = (username: string, groupId: string | undefined) =>
+  !!groupId && !!groups.get(groupId)?.members.has(username);
 
 export const notes = new Map<string, MockNote>(
   [
@@ -53,6 +67,7 @@ export const notes = new Map<string, MockNote>(
     seedNote("seed-3", "alice", "Guess who wrote this", 0, 60, { anonymous: true, minutes: 70 }),
     seedNote("seed-4", "bob", "First reader takes it!", -20, 0, { burnOnRead: true, minutes: 8 }),
     seedNote("seed-5", "alice", "You found me from far away", 0, -300, { minutes: 180 }),
+    seedNote("seed-6", "bob", "Crew only: meet at the lab at 3", 15, -25, { visibility: "group", groupId: "grp-crew", minutes: 12 }),
   ].map((n) => [n.id, n]),
 );
 

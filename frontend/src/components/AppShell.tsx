@@ -1,10 +1,10 @@
 // Game HUD for logged-in screens: logo + "x / N notes" pouch (FE-6) on top, and the bottom
-// action bar (Map / big Drop button / My notes). On the map screen the HUD floats over the map.
+// action bar (Map / big Drop button / My notes). The Groups screen opens from the top bar. On the map screen the HUD floats over the map.
 
 import type { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "../auth/session";
-import { LogoutIcon, MapIcon, NotesIcon, PinIcon, PlusIcon } from "./icons";
+import { GroupIcon, LogoutIcon, MapIcon, NotesIcon, PinIcon, PlusIcon } from "./icons";
 
 export function Logo() {
   return (
@@ -43,6 +43,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Logo />
         <div className="topbar__right">
           <SlotCounter />
+          <NavLink to="/groups" className="iconbtn" aria-label="Groups" title="Groups">
+            <GroupIcon size={20} />
+          </NavLink>
           <button
             className="iconbtn"
             onClick={() => {

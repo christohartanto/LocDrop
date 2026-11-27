@@ -7,6 +7,8 @@ import type { CreateNoteRequest, ErrorCode, MyNote, NoteDetail, NoteSummary } fr
 import { distanceM } from "../lib/geo";
 import {
   activeCount,
+  groups,
+  isMember,
   MAX_ACTIVE_NOTES,
   type MockNote,
   notes,
@@ -40,7 +42,16 @@ function toSummary(n: MockNote, d: number): NoteSummary {
     createdAt: n.createdAt,
   };
 }
-const canSee = (n: MockNote, username: string) => n.visibility === "public" || n.authorUsername === username;
+const canSee = (n: MockNote, username: string) =>
+  n.visibility === "public" || n.authorUsername === username || isMember(username, n.groupId);
+const groupOut = (g: { groupId: string; name: string; joinCode: string }) => ({ groupId: g.groupId, name: g.name, joinCode: g.joinCode });
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ2345679";
+function newCode(): string {
+  for (;;) {
+    const code = Array.from({ length: 6 }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
+    if (![...groups.values()].some((g) => g.joinCode === code)) return code;
+  }
+}
 
 async function readJson(request: Request): Promise<Record<string, unknown> | null> {
   try {
@@ -87,7 +98,11 @@ export const handlers = [
     const text = typeof body?.text === "string" ? body.text.trim() : "";
     if (!text || text.length > 280) return fail(400, "VALIDATION_ERROR", "text: 1–280 characters");
     if (!isNum(body?.lat, -90, 90) || !isNum(body?.lng, -180, 180)) return fail(400, "VALIDATION_ERROR", "lat/lng: invalid");
-    if (body?.visibility === "group") return fail(403, "NOT_GROUP_MEMBER", "Not a member of that group");
+    if (body?.visibility !== "public" && body?.visibility !== "group") return fail(400, "VALIDATION_ERROR", "visibility: invalid");
+    if ((body.visibility === "group") !== (typeof body.groupId === "string")) {
+      return fail(400, "VALIDATION_ERROR", "groupId: required for group notes and not allowed for public notes");
+    }
+    if (body.visibility === "group" && !isMember(me, body.groupId)) return fail(403, "NOT_GROUP_MEMBER", "You are not a member of that group");
     if (activeCount(me) >= MAX_ACTIVE_NOTES) return fail(409, "NOTE_LIMIT_REACHED", "Already 5 active notes");
     const note: MockNote = {
       id: crypto.randomUUID(),
@@ -95,7 +110,8 @@ export const handlers = [
       text,
       lat: body.lat,
       lng: body.lng,
-      visibility: "public",
+      visibility: body.visibility,
+      groupId: body.visibility === "group" ? body.groupId : undefined,
       anonymous: !!body?.anonymous,
       burnOnRead: !!body?.burnOnRead,
       status: "active",
@@ -167,5 +183,38 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.all(url("/groups*"), () => fail(501, "NOT_IMPLEMENTED", "Groups are coming after the midterm")),
+  http.post(url("/groups"), async ({ request }) => {
+    await delay(250);
+    const me = usernameFromToken(request.headers.get("authorization"));
+    if (!me) return unauth();
+    const body = await readJson(request);
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name || name.length > 40) return fail(400, "VALIDATION_ERROR", "name: 1–40 characters");
+    const g = { groupId: crypto.randomUUID(), name, joinCode: newCode(), members: new Set([me]) };
+    groups.set(g.groupId, g);
+    return HttpResponse.json(groupOut(g), { status: 201 });
+  }),
+
+  http.post(url("/groups/join"), async ({ request }) => {
+    await delay(250);
+    const me = usernameFromToken(request.headers.get("authorization"));
+    if (!me) return unauth();
+    const body = await readJson(request);
+    const code = typeof body?.joinCode === "string" ? body.joinCode.replace(/[\s-]/g, "").toUpperCase() : "";
+    if (!/^[A-Z0-9]{6}$/.test(code)) return fail(400, "VALIDATION_ERROR", "joinCode: 6 letters or numbers");
+    const g = [...groups.values()].find((x) => x.joinCode === code);
+    if (!g) return fail(404, "NOT_FOUND", "No group has that join code");
+    g.members.add(me);
+    return HttpResponse.json(groupOut(g));
+  }),
+
+  http.get(url("/groups"), ({ request }) => {
+    const me = usernameFromToken(request.headers.get("authorization"));
+    if (!me) return unauth();
+    const mine = [...groups.values()]
+      .filter((g) => g.members.has(me))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(groupOut);
+    return HttpResponse.json({ groups: mine });
+  }),
 ];

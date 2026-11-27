@@ -69,6 +69,18 @@ export const ListIcon = ({ size }: P) => (
     <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />
   </svg>
 );
+export const GroupIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.2a6.5 6.5 0 0 1 3.5 5.8" />
+  </svg>
+);
+export const CopyIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M5 15H4a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2h9a1 1 0 0 1 1 1v1" />
+  </svg>
+);
 export const MapIcon = ({ size }: P) => (
   <svg {...base(size)}>
     <path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4Z" />

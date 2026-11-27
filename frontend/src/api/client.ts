@@ -6,6 +6,8 @@ import type {
   AuthRequest,
   AuthResponse,
   CreateNoteRequest,
+  Group,
+  GroupList,
   ErrorBody,
   ErrorCode,
   Me,
@@ -79,4 +81,7 @@ export const api = {
   openNote: (id: string, lat: number, lng: number) =>
     request<NoteDetail>("POST", `/notes/${encodeURIComponent(id)}/open`, { lat, lng }),
   recallNote: (id: string) => request<void>("DELETE", `/notes/${encodeURIComponent(id)}`),
+  createGroup: (name: string) => request<Group>("POST", "/groups", { name }),
+  joinGroup: (joinCode: string) => request<Group>("POST", "/groups/join", { joinCode }),
+  listGroups: () => request<GroupList>("GET", "/groups"),
 };
