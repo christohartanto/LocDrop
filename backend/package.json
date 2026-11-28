@@ -19,7 +19,8 @@
     "build:lambdas": "tsx scripts/build-lambdas.ts",
     "deploy": "tsx scripts/deploy.ts",
     "smoke:aws": "tsx scripts/smoke-aws.ts",
-    "smoke:live": "tsx scripts/smoke-live.ts"
+    "smoke:live": "tsx scripts/smoke-live.ts",
+    "lab:wake": "tsx scripts/lab-wake.ts"
   },
   "dependencies": {
     "@aws-sdk/client-apigatewaymanagementapi": "^3.1178.0",

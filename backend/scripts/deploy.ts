@@ -202,6 +202,19 @@ try {
   const outputs = stackOutputs();
   writeFileSync(path.join(buildDir, "outputs.json"), JSON.stringify(outputs, null, 2) + "\n");
 
+  // Live pop-ups: a stopped Learner Lab switches off NotifyFn's stream trigger, and nothing switches it
+  // back on (see scripts/lab-wake.ts). Make sure it's on after every deploy.
+  if (outputs.WsUrl) {
+    step("Checking the live pop-ups trigger");
+    const wake = spawnSync("npx", ["tsx", "scripts/lab-wake.ts", ...(learnerLab ? ["--learner-lab"] : [])], {
+      cwd: backendDir,
+      stdio: "inherit",
+      shell: true,
+      env: AWS_ENV,
+    });
+    if (wake.status !== 0) console.warn("  ⚠ Couldn't check it; run npm run lab:wake later.");
+  }
+
   const hosting = outputs.WebHosting ?? (outputs.WebBucketName ? "cloudfront" : "none");
   if (doFrontend && hosting === "none") {
     console.log("\n  (This stack has no web app hosting (--website=none). Skipping the web app upload.)");

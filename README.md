@@ -90,7 +90,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
-| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4) and screens (FE-5, FE-8), live on AWS. Live pop-ups done: backend (A-9, A-10, live on AWS) and app (FE-10; two-phone browser check 10/10 locally) |
+| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4) and screens (FE-5, FE-8), live on AWS. Live pop-ups done and live on AWS: backend (A-9, A-10) and app (FE-10); two-phone browser check 10/10 on the live link. After a lab restart run `npm run lab:wake -- --learner-lab` |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
@@ -242,8 +242,10 @@ Full guide: [`docs/DEPLOY.md`](docs/DEPLOY.md). Deploy from an up-to-date `main`
 # AWS Academy Learner Lab (current setup): Start Lab → AWS Details → copy the [default] keys into ~/.aws/credentials, then:
 npm run deploy -- --learner-lab            # backend + web app (Amplify), region us-east-1
 npm run smoke:aws -- --learner-lab         # check every endpoint in the cloud
-npm run smoke:live --prefix backend -- --aws   # check live pop-ups end to end in the cloud
+npm run smoke:live -- --aws                # check live pop-ups end to end in the cloud
 ```
+
+**After the lab has been stopped, live pop-ups stay off until you run `npm run lab:wake -- --learner-lab`.** While the lab is stopped, AWS blocks the trigger that feeds pop-ups and switches it off for good; starting the lab doesn't switch it back on. `lab:wake` does (the deploy also does it automatically). Pop-ups resume after it catches up, usually 1–5 minutes. Before a demo: Start Lab → fresh keys → `npm run lab:wake -- --learner-lab` → `npm run smoke:live -- --aws`.
 
 ---
 
