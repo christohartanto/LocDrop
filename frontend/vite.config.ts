@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: process.env.API_TARGET ?? "http://localhost:3000",
           changeOrigin: true,
+          ws: true, // live pop-ups (FE-10) use a WebSocket on the same /api path
           rewrite: (path) => path.replace(/^\/api/, ""),
         },
       },

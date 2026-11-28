@@ -1,9 +1,10 @@
 // FE-2 + FE-3 (redesigned): the live map. Shows where I am, my 100 m range, and the notes inside it.
-// Refreshes on load, every 15 s, when I move > 20 m, and on demand.
+// Refreshes on load, when I move > 20 m, on demand, and every 15 s (every 60 s while live pop-ups are
+// connected: then new and gone notes arrive by themselves, FE-10).
 // The server decides what is "in range"; this screen only draws what it returns.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { friendlyError } from "../api/errors";
 import type { NoteSummary } from "../api/types";
@@ -11,12 +12,14 @@ import { useSession } from "../auth/session";
 import { CrosshairIcon, ListIcon, RefreshIcon } from "../components/icons";
 import { Hint, InfoCard, Spinner } from "../components/ui";
 import { useGeolocation } from "../hooks/useGeolocation";
+import { useLive, useLiveMessages } from "../live/LiveProvider";
 import { formatDistance, timeAgo } from "../lib/format";
 import { distanceM } from "../lib/geo";
 import { GameMap } from "../map/GameMap";
 import { Radar } from "../map/Radar";
 
 const REFRESH_MS = 15_000;
+const REFRESH_LIVE_MS = 60_000;
 const MOVE_M = 20;
 const RADIUS_M = 100;
 
@@ -32,6 +35,23 @@ export function MapPage() {
   const [useRadar, setUseRadar] = useState(false);
   const [recenter, setRecenter] = useState(0);
   const lastPos = useRef<{ lat: number; lng: number } | null>(null);
+  const live = useLive();
+  const location = useLocation();
+  const focusId = (location.state as { focus?: string } | null)?.focus ?? null;
+
+  // live pop-ups: add new notes, drop gone ones, without waiting for the next refresh
+  useLiveMessages((m) => {
+    if (m.type === "note_nearby") {
+      setNotes((prev) =>
+        prev === null || prev.some((n) => n.id === m.note.id)
+          ? prev
+          : [...prev, m.note].sort((a, b) => a.distanceM - b.distanceM),
+      );
+    } else {
+      setNotes((prev) => (prev ? prev.filter((n) => n.id !== m.id) : prev));
+      setSelectedId((s) => (s === m.id ? null : s));
+    }
+  });
 
   const load = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -54,13 +74,22 @@ export function MapPage() {
     if (!prev || distanceM(prev.lat, prev.lng, geo.lat, geo.lng) > MOVE_M) void load(geo.lat, geo.lng);
   }, [geo.status, geo.lat, geo.lng, load]);
 
-  // every 15 s
+  // every 15 s (60 s while live)
+  const refreshMs = live.status === "live" ? REFRESH_LIVE_MS : REFRESH_MS;
   useEffect(() => {
     if (geo.status !== "ok" || geo.lat === null || geo.lng === null) return;
     const { lat, lng } = geo;
-    const id = window.setInterval(() => void load(lat, lng), REFRESH_MS);
+    const id = window.setInterval(() => void load(lat, lng), refreshMs);
     return () => window.clearInterval(id);
-  }, [geo.status, geo.lat, geo.lng, load]);
+  }, [geo.status, geo.lat, geo.lng, load, refreshMs]);
+
+  // "See it" on a pop-up: select that pin once it's on the map
+  useEffect(() => {
+    if (focusId && notes?.some((n) => n.id === focusId)) {
+      setSelectedId(focusId);
+      setListOpen(false);
+    }
+  }, [focusId, location.key, notes]);
 
   const selected = notes?.find((n) => n.id === selectedId) ?? null;
   const open = (n: NoteSummary) => navigate(`/note/${n.id}`, { state: { summary: n } });
@@ -131,6 +160,12 @@ export function MapPage() {
             </button>
             <span className="chip chip--quiet">
               100 m range{geo.accuracyM ? ` · GPS ±${geo.accuracyM} m` : ""}
+              {live.status === "live" && (
+                <span className="livedot" title="Live: new notes pop up by themselves">
+                  {" · "}
+                  <i aria-hidden="true" /> Live
+                </span>
+              )}
             </span>
           </div>
 

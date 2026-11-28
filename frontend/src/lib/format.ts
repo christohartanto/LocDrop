@@ -10,3 +10,5 @@ export function timeAgo(iso: string): string {
 }
 
 export const formatDistance = (m: number) => (m < 1 ? "here" : `${Math.round(m)} m`);
+/** "right here" / "30 m away" (formatDistance + "away" read as "here away" at 0 m). */
+export const formatAway = (m: number) => (m < 1 ? "right here" : `${Math.round(m)} m away`);

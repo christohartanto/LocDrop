@@ -10,7 +10,7 @@ import { useSession } from "../auth/session";
 import { BackIcon } from "../components/icons";
 import { Hint, InfoCard, Spinner } from "../components/ui";
 import { useGeolocation } from "../hooks/useGeolocation";
-import { formatDistance, timeAgo } from "../lib/format";
+import { formatAway, timeAgo } from "../lib/format";
 
 type View =
   | { kind: "confirm" }
@@ -80,7 +80,7 @@ export function NotePage() {
   }, [checked, view.kind, geo.status, open]);
 
   const header = summary
-    ? `${summary.authorName ?? "Anonymous"} · ${formatDistance(summary.distanceM)} away`
+    ? `${summary.authorName ?? "Anonymous"} · ${formatAway(summary.distanceM)}`
     : "A note";
 
   return (
@@ -125,7 +125,7 @@ export function NotePage() {
               ))}
             </span>
             <div className="notecard__head">
-              {view.note.authorName ?? "Anonymous"} · {formatDistance(view.note.distanceM)} away
+              {view.note.authorName ?? "Anonymous"} · {formatAway(view.note.distanceM)}
             </div>
             <div className="notecard__body">
               <p className="notecard__text">{view.note.text}</p>

@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useSession } from "./auth/session";
 import { AppShell } from "./components/AppShell";
 import { LocationOverride } from "./dev/LocationOverride";
+import { LivePopup } from "./live/LivePopup";
+import { LiveProvider } from "./live/LiveProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { ComposePage } from "./pages/ComposePage";
 import { GroupsPage } from "./pages/GroupsPage";
@@ -18,23 +20,26 @@ export function App() {
   return (
     <>
       {username ? (
-        <AppShell>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Suspense fallback={<div className="mappage" />}>
-                  <MapPage />
-                </Suspense>
-              }
-            />
-            <Route path="/note/:id" element={<NotePage />} />
-            <Route path="/new" element={<ComposePage />} />
-            <Route path="/mine" element={<MyNotesPage />} />
-            <Route path="/groups" element={<GroupsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AppShell>
+        <LiveProvider>
+          <AppShell>
+            <LivePopup />
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<div className="mappage" />}>
+                    <MapPage />
+                  </Suspense>
+                }
+              />
+              <Route path="/note/:id" element={<NotePage />} />
+              <Route path="/new" element={<ComposePage />} />
+              <Route path="/mine" element={<MyNotesPage />} />
+              <Route path="/groups" element={<GroupsPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppShell>
+        </LiveProvider>
       ) : (
         <Routes>
           <Route path="/login" element={<AuthPage mode="login" />} />
