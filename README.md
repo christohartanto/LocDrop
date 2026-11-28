@@ -90,7 +90,7 @@ Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributor
 | 0b. AWS setup and deploy | Vincent | Done: **backend live on AWS** (Learner Lab, us-east-1; cloud smoke test 22/22, cloud user flow 16/16) |
 | FE-9. Public web app link | Eugene (done by Vincent's session) | Done: web app on **AWS Amplify Hosting** (HTTPS, works on phones); see [Live app](#live-app) |
 | Redesign ("Daylight Adventure", live map) | Eugene (frontend) + `api.md` change | Done and **live** (PR #12): map walkthrough 23/23 (fake data and real backend), backend tests 61/61, cloud smoke test passes, live two-phone check passes |
-| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4) and screens (FE-5, FE-8), live on AWS. Live pop-ups: backend done (A-9, A-10; tests 98/98, local `smoke:live` passes); frontend (FE-10) not started |
+| 2. Rest of own part (groups, live pop-ups) | Each person | Groups done: backend (A-4) and screens (FE-5, FE-8), live on AWS. Live pop-ups done: backend (A-9, A-10, live on AWS) and app (FE-10; two-phone browser check 10/10 locally) |
 | 3. Test with two phones on campus (F-2) | All | Not started |
 
 ---
@@ -412,7 +412,7 @@ Tick your box in the same pull request that finishes the item.
 - [x] **FE-7** My notes screen with a Recall button
 - [x] **FE-8** Groups screen: create, join with code, list *(opens from the 👥 button in the top bar; each group shows its invite code with a Copy button. Screenshots: `docs/screenshots/groups/`)*
 - [x] **FE-9** Works well on a phone screen; deploy to S3 + CloudFront *(deployed on **AWS Amplify Hosting**, since Learner Lab blocks CloudFront; HTTPS, real GPS works. See [Live app](#live-app))*
-- [ ] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops
+- [x] **FE-10** Live pop-ups: connect to the WebSocket, send location when moving, show a "New note nearby!" pop-up and add or remove notes in the list; reconnect automatically if the connection drops *(banner on any screen with "See it"; the map shows "● Live" while connected. Screenshots: `docs/screenshots/live/`)*
 - [x] **FE-11** Dev-only location override panel
 
 ### 3. Backend part A (@Vincent)

@@ -5,7 +5,7 @@
 //   local:  npm run smoke:live                                  (needs npm run dev:api)
 //   AWS:    npm run smoke:live -- --aws                         (reads backend/.aws-build/outputs.json)
 //   or set API_URL and WS_URL yourself.
-// It recalls its note; the two test accounts it creates stay (names start with "live_").
+// It recalls its note and reuses two fixed test accounts (live_check_a, live_check_b), so it leaves nothing new behind.
 
 import { readFileSync } from "node:fs";
 import WebSocket from "ws";
@@ -32,10 +32,12 @@ async function call(method: string, path: string, token?: string, body?: unknown
   return { status: res.status, json: text ? JSON.parse(text) : null };
 }
 
-const suffix = Date.now().toString(36).slice(-6);
-async function newUser(prefix: string) {
-  const r = await call("POST", "/auth/register", undefined, { username: `live_${prefix}_${suffix}`, password: "password123" });
-  if (r.status !== 201) throw new Error(`register failed: ${r.status} ${JSON.stringify(r.json)}`);
+// Two fixed test accounts, reused on every run (registered the first time), so runs don't pile up users.
+const PASSWORD = "live-check-only";
+async function testUser(username: string) {
+  let r = await call("POST", "/auth/login", undefined, { username, password: PASSWORD });
+  if (r.status === 401) r = await call("POST", "/auth/register", undefined, { username, password: PASSWORD });
+  if (r.status !== 200 && r.status !== 201) throw new Error(`log in / register ${username} failed: ${r.status} ${JSON.stringify(r.json)}`);
   return r.json as { token: string; username: string };
 }
 
@@ -79,8 +81,8 @@ try {
     () => report(true, "bad token is refused"),
   );
 
-  const author = await newUser("a");
-  const reader = await newUser("b");
+  const author = await testUser("live_check_a");
+  const reader = await testUser("live_check_b");
   const ws = await open(reader.token);
   report(true, "reader connects with a login token");
   ws.send(JSON.stringify({ action: "location", ...spot }));
