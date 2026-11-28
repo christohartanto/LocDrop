@@ -15,11 +15,12 @@ Learner Lab works with `--learner-lab`, which uses the lab's existing **`LabRole
    ```powershell
    npm run deploy -- --learner-lab
    npm run smoke:aws -- --learner-lab
-   npm run smoke:live --prefix backend -- --aws   # live pop-ups: WebSocket + DynamoDB Stream
+   npm run smoke:live -- --aws                    # live pop-ups: WebSocket + DynamoDB Stream
    ```
    The deploy prints the **Web app** link (`https://main.<id>.amplifyapp.com`) and the API link.
+5. **Every new lab session** (even without redeploying): `npm run lab:wake -- --learner-lab`. A stopped lab switches off the trigger behind live pop-ups, and starting the lab doesn't switch it back on. This does; pop-ups resume after 1–5 minutes of catching up. Check with `npm run smoke:live -- --aws`.
 
-**The app keeps running between lab sessions** (checked after a session ended: the API and database still answered). You only need fresh keys (steps 1–2) to **deploy** again.
+**While the lab is stopped, the live app is down:** the web page loads, but every API call fails (500). After **Start Lab** the API answers again without redeploying; only live pop-ups also need step 5. You need fresh keys (steps 1–2) to deploy or run `lab:wake`.
 
 ## Personal AWS account (later)
 

@@ -12,6 +12,8 @@
     "token": "npm run token --prefix backend --",
     "smoke": "npm run smoke --prefix backend",
     "smoke:aws": "npm run smoke:aws --prefix backend --",
+    "smoke:live": "npm run smoke:live --prefix backend --",
+    "lab:wake": "npm run lab:wake --prefix backend --",
     "dev:api": "npm run dev --prefix backend",
     "dev:api:quiet": "npm run dev:quiet --prefix backend",
     "dev:web": "npm run dev --prefix frontend",
