@@ -175,7 +175,7 @@ All results go to `backend/bench/results/` as a raw CSV + a `*-summary.md` with 
 | A-8 | Vincent | 50 simultaneous "write note" requests from one user, N = 5, 20 runs; naive vs conditional write | Conditional: exactly 5 every run. Naive: more than 5 | Bar chart: successes per run, both versions, line at N = 5 |
 | B-7 | Wendy | 20 simultaneous opens of one "delete after first read" note, 20 runs | Exactly 1 text and 1 slot release every run | Bar chart: texts returned per run |
 | B-8 | Wendy | Nearby query latency and items examined: geohash 9-cell vs full scan, 1k / 10k / 50k notes | Geohash stays flat; scan grows with table size; same results | Line chart: latency and items examined vs table size |
-| L-1 | Vincent | p50 / p95 latency per endpoint, local | Register and login are slowest (password hashing) | Table |
+| L-1 | Vincent | p50 / p95 latency per endpoint (incl. groups), local; plus live pop-up delivery time (write → `note_nearby`, recall → `note_gone`) | Register and login are slowest (password hashing); pop-ups ≈ 0.43 s locally (stream read every 0.4 s), ≈ 0.45–0.8 s warm on AWS | Table |
 
 ### Saturday timeline
 
@@ -493,13 +493,24 @@ Ready-made prompts are in `docs/prompts/`.
 - A group is a set of people who joined with a code.
 - The map shows notes **within 100 m** as pins at their real position, with distance and author, but not the text. Text appears only after opening (and the server checks distance again then). Notes farther away are never sent, so the map can't reveal them. *(Added with the redesign: `api.md` `NoteSummary` gained `lat`/`lng`.)*
 
-## Open questions (decide as a team)
+## Decisions and open questions
 
-1. Is "join with a code" the right way to do groups?
-2. Should "delete after first read" be optional per note, or apply to every note?
-3. One radius for all notes, or can each note have its own?
-4. Should people see that a note exists before they open it?
-5. ~~Which AWS account hosts the app?~~ **Decided for the course:** AWS Academy Learner Lab (our "Make It Happen" account can't be used: its AWS Organization blocks Lambda). **Still open for later:** whose **personal** AWS account hosts it long-term, before the course ends and Learner Lab is wiped? (Set a Zero spend budget first.)
-6. Do we want a custom domain (e.g. `locdrop.xyz`, about $10/year)? It would also keep the link the same when we move from Learner Lab to a personal account.
-7. **Connection from mainland China:** during testing, the connection from Shenzhen to AWS `us-east-1` sometimes dropped for a few minutes (likely VPN/routing). Test before every demo. When moving to a personal account, consider a closer region (Singapore, Tokyo) if the account allows it.
-8. **Map data from mainland China:** the map tiles come from OpenFreeMap (outside China). If they're blocked or slow on some networks, the app shows the radar instead, which still works. For a China-first demo, a China-friendly map provider could be added later.
+### Decided (as built)
+
+The team's first open questions were settled while building. Raise it if you want to change one:
+
+1. **Groups: join with a code.** Yes. Creating a group gives a 6-character code (no look-alike characters such as 0/O, 1/I); anyone with the code can join, and any member can see and share it. No "leave group" in v1. *(A-4, FE-8)*
+2. **"Delete after first read": optional, per note.** The author turns it on when writing (🔥). The author opening their own note doesn't count. *(B-5, FE-5)*
+3. **One radius for every note: 100 m.** Same for writing, the map, opening and live pop-ups (`READ_RADIUS_M`). Per-note radii would also break the "9 geohash cells always cover the radius" guarantee above ~140 m.
+4. **People can see that a note exists before opening it.** The map shows pins within 100 m (author or "Anonymous", distance, 🔥), and live pop-ups announce new ones, but never the text: that only comes from `POST /notes/{id}/open`, which re-checks distance and permission. Notes farther away are never sent. *(see Assumptions)*
+5. **AWS account for the course: AWS Academy Learner Lab**, us-east-1 (our "Make It Happen" account's AWS Organization blocks Lambda). Learner Lab quirks are handled: `--learner-lab` deploys with LabRole, and `npm run lab:wake` switches live pop-ups back on after a lab restart.
+
+### Still open (decide as a team)
+
+6. **Where it lives after the course.** Learner Lab is wiped when the course ends, and the link stops working. Whose **personal** AWS account hosts it long-term? (Same template and command, without `--learner-lab`. Set a Zero spend budget first.)
+7. **Custom domain?** e.g. `locdrop.xyz`, about $10/year. It would also keep the link the same when we move from Learner Lab to a personal account.
+
+### Known risks
+
+- **Connection from mainland China:** during testing, the connection from Shenzhen to AWS `us-east-1` (and to GitHub) sometimes dropped for a few minutes (likely VPN/routing). Test before every demo. When moving to a personal account, consider a closer region (Singapore, Tokyo) if the account allows it.
+- **Map data from mainland China:** the map tiles come from OpenFreeMap (outside China). If they're blocked or slow on some networks, the app shows the radar instead, which still works. For a China-first demo, a China-friendly map provider could be added later.
