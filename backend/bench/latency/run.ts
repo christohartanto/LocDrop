@@ -1,11 +1,14 @@
 // OWNER: Vincent. L-1: p50 / p95 latency for every implemented endpoint, measured over HTTP against
 // the local API (Express → Lambda handlers → DynamoDB Local). Sequential requests, 10 warm-up calls each.
+// Also live pop-ups (A-10): time from POST /notes until note_nearby arrives on a connected WebSocket,
+// and from DELETE until note_gone arrives.
 // Needs the API running: npm run dev:api:quiet
 
 import { config } from "../../src/shared/config";
 import { offsetMeters } from "../../src/shared/geo";
 import { createNoteDirect, createUser, uniqueName } from "../lib/fixtures";
-import { ensureServer, request } from "../lib/http";
+import WebSocket from "ws";
+import { API_URL, ensureServer, request } from "../lib/http";
 import { mdTable, writeCsv, writeSummary } from "../lib/report";
 import { summarize } from "../lib/stats";
 
@@ -128,6 +131,74 @@ for (const spec of specs) {
   console.log(`${spec.endpoint.padEnd(24)} n=${s.n} p50=${s.p50} ms p95=${s.p95} ms errors=${errors}`);
 }
 
+// ---------------------------------------------------------------- live pop-ups (A-10)
+const POPUP_N = 50;
+const popSpot = offsetMeters(c.lat, c.lng, -5_000, 5_000);
+const popReader = await createUser(uniqueName("latp"));
+const popAuthor = await createUser(uniqueName("latq"));
+const ws = await new Promise<WebSocket>((resolve, reject) => {
+  const sock = new WebSocket(`${API_URL.replace(/^http/, "ws")}/?token=${encodeURIComponent(popReader.token)}`);
+  sock.once("open", () => resolve(sock));
+  sock.once("error", reject);
+});
+ws.send(JSON.stringify({ action: "location", ...popSpot }));
+await new Promise((r) => setTimeout(r, 1000));
+
+function waitFor(match: (m: any) => boolean, timeoutMs = 10_000): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      ws.off("message", onMsg);
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    const onMsg = (data: WebSocket.RawData) => {
+      const m = JSON.parse(data.toString());
+      if (!match(m)) return;
+      clearTimeout(timer);
+      ws.off("message", onMsg);
+      resolve(performance.now());
+    };
+    ws.on("message", onMsg);
+  });
+}
+
+const nearbyMs: number[] = [];
+const goneMs: number[] = [];
+let popErrors = 0;
+for (let i = 0; i < POPUP_N + 3; i++) {
+  // drop a note 20 m from the reader and time the pop-up
+  const started = performance.now();
+  const created = await request("POST", "/notes", {
+    token: popAuthor.token,
+    body: { ...noteBody, ...offsetMeters(popSpot.lat, popSpot.lng, 20, 0) },
+  });
+  const id = created.body?.id as string;
+  const arrived = await waitFor((m) => m.type === "note_nearby" && m.note?.id === id).catch(() => null);
+  // recall it (frees the slot) and time the removal
+  const recallStarted = performance.now();
+  const gone = waitFor((m) => m.type === "note_gone" && m.id === id).catch(() => null);
+  await request("DELETE", `/notes/${id}`, { token: popAuthor.token });
+  const goneAt = await gone;
+  if (i < 3) continue; // warm-up
+  if (arrived === null || goneAt === null) popErrors++;
+  if (arrived !== null) {
+    nearbyMs.push(arrived - started);
+    samples.push({ endpoint: "pop-up: note_nearby", i: i - 2, status: 200, ms: Math.round((arrived - started) * 100) / 100 });
+  }
+  if (goneAt !== null) {
+    goneMs.push(goneAt - recallStarted);
+    samples.push({ endpoint: "pop-up: note_gone", i: i - 2, status: 200, ms: Math.round((goneAt - recallStarted) * 100) / 100 });
+  }
+}
+ws.close();
+for (const [name, ms] of [
+  ["pop-up: POST /notes → note_nearby", nearbyMs],
+  ["pop-up: DELETE → note_gone", goneMs],
+] as const) {
+  const st = summarize([...ms]);
+  summary.push({ endpoint: name, n: st.n, "p50 ms": st.p50, "p95 ms": st.p95, "mean ms": st.mean, "max ms": st.max, errors: popErrors });
+  console.log(`${name.padEnd(34)} n=${st.n} p50=${st.p50} ms p95=${st.p95} ms`);
+}
+
 writeCsv("latency-samples.csv", samples);
 writeSummary(
   "latency-summary.md",
@@ -142,6 +213,8 @@ writeSummary(
     `- Register and login are the slowest because they hash or verify the password with bcrypt (cost ${config.bcryptCost}), which is deliberately slow to protect passwords.`,
     "- `POST /notes` and `DELETE /notes/{id}` run a DynamoDB transaction (note + slot counter together).",
     "- `GET /notes/nearby` runs 9 geohash cell queries in parallel and then the exact distance check.",
+    "- `POST /groups` runs a 3-item transaction (group + unique join code + membership); `GET /groups` is one query (the caller is in ~210 groups by then, a worst case).",
+    `- **Pop-up rows** (A-10) time the whole path: the HTTP write, the table's change stream, \`notify\`, and the WebSocket message to a phone 20 m away (n = ${POPUP_N}, 3 warm-up). Locally the dev server reads DynamoDB Local's stream every 0.4 s, so most of that time is waiting for the next read. On AWS, Lambda reads the stream instead: \`npm run smoke:live -- --aws\` measured about 0.45–0.8 s warm (2.6 s on the first, cold run).`,
     "- These are local numbers (no network between client, server and database). On AWS expect higher absolute values (network + Lambda), so use them to compare endpoints with each other, not as production latency.",
     "",
     "**Suggested chart:** horizontal bar chart of p50 with p95 as an error bar or second bar, one bar per endpoint.",
